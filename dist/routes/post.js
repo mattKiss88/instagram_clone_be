@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.postRouter = void 0;
+var express_1 = require("express");
+var post_1 = require("../controllers/post");
+var router = (0, express_1.Router)();
+exports.postRouter = router;
+var multer = require("multer");
+var upload = multer({ dest: "uploads/" });
+router.post("/", upload.single("image"), post_1.createPost);
+router.get("/:id", post_1.getAllPosts);
+router.get("/image/:key", post_1.getImage);

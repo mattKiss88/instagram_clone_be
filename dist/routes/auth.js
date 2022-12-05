@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authRouter = void 0;
+var express_1 = require("express");
+var auth_1 = require("../controllers/auth");
+var router = (0, express_1.Router)();
+exports.authRouter = router;
+var multer = require("multer");
+var upload = multer({ dest: "uploads/" });
+router.post("/login", auth_1.getUser);
+router.post("/signup", upload.single("image"), auth_1.createUser);

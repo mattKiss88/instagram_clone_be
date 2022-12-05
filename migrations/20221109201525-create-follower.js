@@ -5,6 +5,7 @@ module.exports = {
     await queryInterface.createTable("Followers", {
       followingUserId: {
         type: Sequelize.INTEGER,
+        primaryKey: true,
         references: {
           model: "Users",
           key: "id",

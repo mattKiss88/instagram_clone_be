@@ -13,13 +13,17 @@ module.exports = (sequelize, DataTypes) => {
   }
   Follower.init(
     {
-      following_user_id: DataTypes.INTEGER,
-      follower_user_id: DataTypes.INTEGER,
+      followingUserId: DataTypes.INTEGER,
+      followerUserId: DataTypes.INTEGER,
     },
     {
       sequelize,
       modelName: "Follower",
     }
   );
+
+  Follower.removeAttribute("id");
+  Follower.removeAttribute("updatedAt");
+
   return Follower;
 };

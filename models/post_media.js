@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  Image.init(
+  Post_media.init(
     {
       postId: DataTypes.NUMBER,
       filterId: DataTypes.NUMBER,
@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "Image",
+      modelName: "Post_media",
     }
   );
   return Post_media;
