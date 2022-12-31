@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -39,30 +50,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getImage = exports.getAllPosts = exports.createPost = void 0;
+exports.getFeed = exports.getImage = exports.getAllPosts = exports.createPost = void 0;
 var s3_1 = require("../helpers/s3");
 var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
-var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture;
+var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower;
 require("dotenv").config();
 var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 function createPost(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var post, file, image, error_1;
+        var file, post, image, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 5, , 6]);
+                    file = req.file;
+                    return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
+                case 1:
+                    _a.sent();
                     return [4 /*yield*/, Post.create({
                             caption: req.body.caption,
                             userId: req.body.userId,
                         })];
-                case 1:
-                    post = _a.sent();
-                    file = req.file;
-                    return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
                 case 2:
-                    _a.sent();
+                    post = _a.sent();
                     return [4 /*yield*/, Post_media.create({
                             postId: post.id,
                             mediaFileId: file.filename,
@@ -161,3 +172,91 @@ function getImage(req, res, next) {
     });
 }
 exports.getImage = getImage;
+function getFeed(req, res, next) {
+    return __awaiter(this, void 0, void 0, function () {
+        var id, following, feedArr, error_3;
+        var _this = this;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 3, , 4]);
+                    id = req.params.id;
+                    console.log(id);
+                    return [4 /*yield*/, Follower.findAll({
+                            where: { followerUserId: id },
+                        })];
+                case 1:
+                    following = _a.sent();
+                    console.log(following);
+                    return [4 /*yield*/, Promise.all(following.map(function (id) { return __awaiter(_this, void 0, void 0, function () {
+                            var posts, postArr;
+                            var _this = this;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        console.log(id);
+                                        return [4 /*yield*/, Post.findAll({
+                                                where: { userId: id },
+                                            })];
+                                    case 1:
+                                        posts = _a.sent();
+                                        console.log(posts);
+                                        return [4 /*yield*/, Promise.all(posts
+                                                .map(function (post) { return __awaiter(_this, void 0, void 0, function () {
+                                                var images, user, profilePic;
+                                                return __generator(this, function (_a) {
+                                                    switch (_a.label) {
+                                                        case 0: return [4 /*yield*/, Post_media.findAll({
+                                                                where: { postId: post.id },
+                                                            })];
+                                                        case 1:
+                                                            images = _a.sent();
+                                                            return [4 /*yield*/, User.findOne({
+                                                                    where: { id: id },
+                                                                })];
+                                                        case 2:
+                                                            user = _a.sent();
+                                                            return [4 /*yield*/, Profile_picture.findOne({
+                                                                    where: { userId: id },
+                                                                })];
+                                                        case 3:
+                                                            profilePic = _a.sent();
+                                                            return [2 /*return*/, {
+                                                                    post: post,
+                                                                    images: images,
+                                                                    user: __assign(__assign({}, user.values), { avatar: profilePic.mediaFileId }),
+                                                                }];
+                                                    }
+                                                });
+                                            }); })
+                                                .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; }))];
+                                    case 2:
+                                        postArr = _a.sent();
+                                        return [2 /*return*/, postArr];
+                                }
+                            });
+                        }); })).then(function (array) {
+                            return array
+                                .flat(1)
+                                .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
+                        })];
+                case 2:
+                    feedArr = _a.sent();
+                    // let orderByDate : any = feedArr.sort((a: any, b: any) => {
+                    //   a.posts[0].post.createdAt - b.posts[0].post.createdAt;
+                    // })
+                    res.status(201).send({
+                        feed: feedArr,
+                    });
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_3 = _a.sent();
+                    console.log(error_3);
+                    res.status(400).send(error_3);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.getFeed = getFeed;

@@ -114,7 +114,7 @@ function createUser(req, res, next) {
                     user = _b.sent();
                     user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: file.filename || null });
                     delete user.password;
-                    if (!file) return [3 /*break*/, 6];
+                    if (!(file === null || file === void 0 ? void 0 : file.filename)) return [3 /*break*/, 6];
                     return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
                 case 3:
                     _b.sent();

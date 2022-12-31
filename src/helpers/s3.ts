@@ -29,6 +29,12 @@ export const uploadFile = (file: any) => {
 // download a file from s3
 
 export const getFileStream = (fileKey: string) => {
+  console.log("fileKey", fileKey);
+
+  console.log("bucketName", bucketName);
+  console.log("region", region);
+  console.log("accessKeyId", accessKeyId);
+  console.log("secretAccessKey", secretAccessKey);
   const downloadParams: { Key: string; Bucket: string } = {
     Key: fileKey,
     Bucket: bucketName || "",

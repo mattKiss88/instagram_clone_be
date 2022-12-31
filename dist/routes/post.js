@@ -10,3 +10,4 @@ var upload = multer({ dest: "uploads/" });
 router.post("/", upload.single("image"), post_1.createPost);
 router.get("/:id", post_1.getAllPosts);
 router.get("/image/:key", post_1.getImage);
+router.get("/feed/:id", post_1.getFeed);

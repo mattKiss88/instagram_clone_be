@@ -8,7 +8,10 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Follower.belongsTo(models.User, {
+        foreignKey: "followingUserId",
+        as: "followingUser",
+      });
     }
   }
   Follower.init(
@@ -22,7 +25,6 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  Follower.removeAttribute("id");
   Follower.removeAttribute("updatedAt");
 
   return Follower;

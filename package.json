@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ngneat/falso": "^6.3.2",
     "aws-sdk": "^2.1248.0",
     "axios": "^1.1.3",
     "bcrypt": "^5.1.0",

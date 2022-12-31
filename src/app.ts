@@ -5,6 +5,7 @@ import { Request, Response } from "express";
 import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { userRouter } from "./routes/user";
+import { commentRouter } from "./routes/comment";
 const { Post, Post_media } = require("../models");
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/auth", authRouter);
 app.use("/post", postRouter);
 app.use("/user", userRouter);
+app.use("/comment", commentRouter);
 
 app.get("/", (req, res) => {
   res.send(`Hello from Instagram! Running on port ${port}`);

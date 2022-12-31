@@ -56,7 +56,7 @@ async function createUser(req: any, res: Response, next: NextFunction) {
 
     delete user.password;
 
-    if (file) {
+    if (file?.filename) {
       await uploadFile(file);
 
       await Profile_picture.create({

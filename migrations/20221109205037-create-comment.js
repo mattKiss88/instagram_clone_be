@@ -24,7 +24,7 @@ module.exports = {
         },
       },
       comment: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(600),
         required: true,
       },
       commentRepliedToId: {
