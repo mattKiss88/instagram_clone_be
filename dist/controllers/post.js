@@ -106,13 +106,11 @@ function getAllPosts(req, res, next) {
                 case 0:
                     _a.trys.push([0, 5, , 6]);
                     id = req.params.id;
-                    console.log(id);
                     return [4 /*yield*/, Post.findAll({
                             where: { userId: id },
                         })];
                 case 1:
                     posts = _a.sent();
-                    console.log(posts);
                     return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
                             var images;
                             return __generator(this, function (_a) {
@@ -140,7 +138,7 @@ function getAllPosts(req, res, next) {
                     profilePic = _a.sent();
                     res.status(201).send({
                         posts: postArr,
-                        user: { username: user.username, avatar: profilePic.mediaFileId },
+                        user: { username: user.username, avatar: profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId },
                     });
                     return [3 /*break*/, 6];
                 case 5:
@@ -164,7 +162,7 @@ function getImage(req, res, next) {
                 readStream.pipe(res);
             }
             catch (error) {
-                console.log(error);
+                console.log("img err", error);
                 res.status(400).send(error);
             }
             return [2 /*return*/];
@@ -181,28 +179,27 @@ function getFeed(req, res, next) {
                 case 0:
                     _a.trys.push([0, 3, , 4]);
                     id = req.params.id;
-                    console.log(id);
+                    console.log(id, "---------------------------------->");
                     return [4 /*yield*/, Follower.findAll({
                             where: { followerUserId: id },
                         })];
                 case 1:
                     following = _a.sent();
-                    console.log(following);
-                    return [4 /*yield*/, Promise.all(following.map(function (id) { return __awaiter(_this, void 0, void 0, function () {
+                    console.log(following, "ff---------------------------------->");
+                    return [4 /*yield*/, Promise.all(following.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
                             var posts, postArr;
                             var _this = this;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
-                                        console.log(id);
+                                        console.log(user.id, "user---------------------------------->");
                                         return [4 /*yield*/, Post.findAll({
-                                                where: { userId: id },
+                                                where: { userId: user === null || user === void 0 ? void 0 : user.followingUserId },
                                             })];
                                     case 1:
                                         posts = _a.sent();
-                                        console.log(posts);
-                                        return [4 /*yield*/, Promise.all(posts
-                                                .map(function (post) { return __awaiter(_this, void 0, void 0, function () {
+                                        console.log(posts, "posts---------------------------------->");
+                                        return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
                                                 var images, user, profilePic;
                                                 return __generator(this, function (_a) {
                                                     switch (_a.label) {
@@ -212,39 +209,41 @@ function getFeed(req, res, next) {
                                                         case 1:
                                                             images = _a.sent();
                                                             return [4 /*yield*/, User.findOne({
-                                                                    where: { id: id },
+                                                                    where: { id: post.userId },
                                                                 })];
                                                         case 2:
                                                             user = _a.sent();
+                                                            console.log(user, "user ----------------------------------->");
                                                             return [4 /*yield*/, Profile_picture.findOne({
-                                                                    where: { userId: id },
+                                                                    where: { userId: post.userId },
                                                                 })];
                                                         case 3:
                                                             profilePic = _a.sent();
                                                             return [2 /*return*/, {
                                                                     post: post,
                                                                     images: images,
-                                                                    user: __assign(__assign({}, user.values), { avatar: profilePic.mediaFileId }),
+                                                                    user: __assign(__assign({}, user.dataValues), { avatar: profilePic.mediaFileId }),
                                                                 }];
                                                     }
                                                 });
                                             }); })
-                                                .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; }))];
+                                            // .sort((a: any, b: any) => a.post.createdAt - b.post.createdAt)
+                                            )];
                                     case 2:
                                         postArr = _a.sent();
                                         return [2 /*return*/, postArr];
                                 }
                             });
-                        }); })).then(function (array) {
+                        }); }))
+                            .then(function (array) {
+                            console.log(array, "array---------------------------------->");
                             return array
                                 .flat(1)
                                 .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
-                        })];
+                        })
+                            .catch(function (err) { return console.log("zzzzz", err); })];
                 case 2:
                     feedArr = _a.sent();
-                    // let orderByDate : any = feedArr.sort((a: any, b: any) => {
-                    //   a.posts[0].post.createdAt - b.posts[0].post.createdAt;
-                    // })
                     res.status(201).send({
                         feed: feedArr,
                     });

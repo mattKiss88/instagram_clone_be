@@ -4,6 +4,7 @@ import {
   getAllPosts,
   getImage,
   getFeed,
+  toggleLike,
 } from "../controllers/post";
 const router = Router();
 const multer = require("multer");
@@ -13,5 +14,6 @@ router.post("/", upload.single("image"), createPost);
 router.get("/:id", getAllPosts);
 router.get("/image/:key", getImage);
 router.get("/feed/:id", getFeed);
+router.post("/like", toggleLike);
 
 export { router as postRouter };

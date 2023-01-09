@@ -16,13 +16,9 @@ async function getUser(req: any, res: Response, next: NextFunction) {
 
     delete user.password;
 
-    console.log(id, "----------------------------------");
-
     const profilePic = await Profile_picture.findOne({
       where: { userId: id },
     });
-
-    console.log(profilePic, "11----------------------------------");
 
     const posts = await Post.findAll({
       where: { userId: id },
