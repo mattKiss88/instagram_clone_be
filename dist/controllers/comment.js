@@ -85,10 +85,11 @@ function getCommentsByPostId(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
         var post_id, comments, subComments_1, error_2;
         var _a, _b;
+        var _this = this;
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0:
-                    _c.trys.push([0, 3, , 4]);
+                    _c.trys.push([0, 4, , 5]);
                     post_id = req.params.post_id;
                     return [4 /*yield*/, Comment.findAll({
                             where: {
@@ -110,17 +111,28 @@ function getCommentsByPostId(req, res, next) {
                         })];
                 case 2:
                     subComments_1 = _c.sent();
-                    comments = comments.map(function (comment) {
-                        return __assign(__assign({}, comment.dataValues), { subComments: subComments_1.filter(function (subComment) { return subComment.commentRepliedToId === comment.id; }) });
-                    });
-                    res.status(200).send(__assign({}, comments));
-                    return [3 /*break*/, 4];
+                    return [4 /*yield*/, Promise.all(comments.map(function (comment) { return __awaiter(_this, void 0, void 0, function () {
+                            var user;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, comment.getUser()];
+                                    case 1:
+                                        user = _a.sent();
+                                        console.log(user.dataValues);
+                                        return [2 /*return*/, __assign(__assign({}, comment.dataValues), { subComments: subComments_1.filter(function (subComment) { return subComment.commentRepliedToId === comment.id; }) })];
+                                }
+                            });
+                        }); }))];
                 case 3:
+                    comments = _c.sent();
+                    res.status(200).send(__assign({}, comments));
+                    return [3 /*break*/, 5];
+                case 4:
                     error_2 = _c.sent();
                     console.log(error_2);
                     res.status(400).send(error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     });

@@ -50,11 +50,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFeed = exports.getImage = exports.getAllPosts = exports.createPost = void 0;
+exports.toggleLike = exports.getFeed = exports.getImage = exports.getAllPosts = exports.createPost = void 0;
 var s3_1 = require("../helpers/s3");
 var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
-var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower;
+var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes;
 require("dotenv").config();
 var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 function createPost(req, res, next) {
@@ -172,35 +172,31 @@ function getImage(req, res, next) {
 exports.getImage = getImage;
 function getFeed(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var id, following, feedArr, error_3;
+        var id_1, following, feedArr, error_3;
         var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 3, , 4]);
-                    id = req.params.id;
-                    console.log(id, "---------------------------------->");
+                    id_1 = req.params.id;
                     return [4 /*yield*/, Follower.findAll({
-                            where: { followerUserId: id },
+                            where: { followerUserId: id_1 },
                         })];
                 case 1:
                     following = _a.sent();
-                    console.log(following, "ff---------------------------------->");
                     return [4 /*yield*/, Promise.all(following.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
                             var posts, postArr;
                             var _this = this;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
-                                    case 0:
-                                        console.log(user.id, "user---------------------------------->");
-                                        return [4 /*yield*/, Post.findAll({
-                                                where: { userId: user === null || user === void 0 ? void 0 : user.followingUserId },
-                                            })];
+                                    case 0: return [4 /*yield*/, Post.findAll({
+                                            where: { userId: user === null || user === void 0 ? void 0 : user.followingUserId },
+                                        })];
                                     case 1:
                                         posts = _a.sent();
                                         console.log(posts, "posts---------------------------------->");
                                         return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
-                                                var images, user, profilePic;
+                                                var images, user, profilePic, totalLikes, likesPost;
                                                 return __generator(this, function (_a) {
                                                     switch (_a.label) {
                                                         case 0: return [4 /*yield*/, Post_media.findAll({
@@ -219,16 +215,24 @@ function getFeed(req, res, next) {
                                                                 })];
                                                         case 3:
                                                             profilePic = _a.sent();
+                                                            return [4 /*yield*/, Post_likes.findAll({
+                                                                    where: { postId: post.id },
+                                                                })];
+                                                        case 4:
+                                                            totalLikes = _a.sent();
+                                                            return [4 /*yield*/, Post_likes.findOne({
+                                                                    where: { postId: post.id, userId: id_1 },
+                                                                })];
+                                                        case 5:
+                                                            likesPost = _a.sent();
                                                             return [2 /*return*/, {
-                                                                    post: post,
+                                                                    post: __assign(__assign({}, post.dataValues), { totalLikes: totalLikes.length, likes: likesPost ? true : false }),
                                                                     images: images,
                                                                     user: __assign(__assign({}, user.dataValues), { avatar: profilePic.mediaFileId }),
                                                                 }];
                                                     }
                                                 });
-                                            }); })
-                                            // .sort((a: any, b: any) => a.post.createdAt - b.post.createdAt)
-                                            )];
+                                            }); }))];
                                     case 2:
                                         postArr = _a.sent();
                                         return [2 /*return*/, postArr];
@@ -236,12 +240,11 @@ function getFeed(req, res, next) {
                             });
                         }); }))
                             .then(function (array) {
-                            console.log(array, "array---------------------------------->");
                             return array
                                 .flat(1)
                                 .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
                         })
-                            .catch(function (err) { return console.log("zzzzz", err); })];
+                            .catch(function (err) { return console.log(err); })];
                 case 2:
                     feedArr = _a.sent();
                     res.status(201).send({
@@ -259,3 +262,123 @@ function getFeed(req, res, next) {
     });
 }
 exports.getFeed = getFeed;
+function toggleLike(req, res, next) {
+    return __awaiter(this, void 0, void 0, function () {
+        var _a, postId, userId, like, data, error_4;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 6, , 7]);
+                    _a = req.body, postId = _a.postId, userId = _a.userId;
+                    return [4 /*yield*/, Post_likes.findOne({
+                            where: { postId: postId, userId: userId },
+                        })];
+                case 1:
+                    like = _b.sent();
+                    data = void 0;
+                    if (!like) return [3 /*break*/, 3];
+                    return [4 /*yield*/, unlikePost(postId, userId)];
+                case 2:
+                    data = _b.sent();
+                    return [3 /*break*/, 5];
+                case 3: return [4 /*yield*/, likePost(postId, userId)];
+                case 4:
+                    data = _b.sent();
+                    _b.label = 5;
+                case 5:
+                    res.status(201).send({ data: data });
+                    return [3 /*break*/, 7];
+                case 6:
+                    error_4 = _b.sent();
+                    console.log(error_4);
+                    res.status(400).send(error_4);
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.toggleLike = toggleLike;
+function likePost(postId, userId) {
+    return __awaiter(this, void 0, void 0, function () {
+        var like, error_5;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    // const { postId, userId } = req.body;
+                    console.log(postId, userId, "like post ------------------------->");
+                    return [4 /*yield*/, Post_likes.create({
+                            postId: postId,
+                            userId: userId,
+                        })];
+                case 1:
+                    like = _a.sent();
+                    console.log(like, "like ------------------------->");
+                    return [2 /*return*/, like];
+                case 2:
+                    error_5 = _a.sent();
+                    console.log(error_5);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
+}
+function unlikePost(postId, userId) {
+    return __awaiter(this, void 0, void 0, function () {
+        var like, error_6;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    return [4 /*yield*/, Post_likes.destroy({
+                            where: { postId: postId, userId: userId },
+                        })];
+                case 1:
+                    like = _a.sent();
+                    return [2 /*return*/, like];
+                case 2:
+                    error_6 = _a.sent();
+                    console.log(error_6);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
+}
+function getLikes(req, res, next) {
+    return __awaiter(this, void 0, void 0, function () {
+        var postId, likes, error_7;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    postId = req.params.postId;
+                    return [4 /*yield*/, Post_likes.findAll({
+                            where: { postId: postId },
+                        })];
+                case 1:
+                    likes = _a.sent();
+                    // const likesArr = await Promise.all(
+                    //   likes.map(async (like: any) => {
+                    //     const user = await User.findOne({
+                    //       where: { id: like.userId },
+                    //     });
+                    //     const profilePic = await Profile_picture.findOne({
+                    //       where: { userId: like.userId },
+                    //     });
+                    //     return { ...user.dataValues, avatar: profilePic.mediaFileId };
+                    //   })
+                    // );
+                    return [2 /*return*/, likes.length];
+                case 2:
+                    error_7 = _a.sent();
+                    console.log(error_7);
+                    res.status(400).send(error_7);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
+            }
+        });
+    });
+}

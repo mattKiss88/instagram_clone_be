@@ -58,7 +58,12 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
 
     const user = await User.findOne({
       where: { id },
+      raw: true,
     });
+
+    console.log("--------------------->user", user);
+
+    delete user.password;
 
     const profilePic = await Profile_picture.findOne({
       where: { userId: id },
@@ -66,7 +71,7 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
 
     res.status(201).send({
       posts: postArr,
-      user: { username: user.username, avatar: profilePic?.mediaFileId },
+      user: { ...user, avatar: profilePic?.mediaFileId },
     });
   } catch (error) {
     console.log(error);
@@ -112,6 +117,8 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
               where: { id: post.userId },
             });
 
+            delete user.dataValues.password;
+
             console.log(user, "user ----------------------------------->");
 
             const profilePic = await Profile_picture.findOne({
@@ -126,6 +133,33 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
               where: { postId: post.id, userId: id },
             });
 
+            const userPostList = await Post.findAll({
+              where: { userId: post.userId },
+            });
+
+            const userPostListWithImg = await Promise.all(
+              userPostList.map(async (post: any) => {
+                const images = await Post_media.findAll({
+                  where: { postId: post.id },
+                });
+
+                return { post, images };
+              })
+            );
+
+            const followers = await Follower.findAll({
+              where: { followingUserId: post.userId },
+            });
+
+            const following = await Follower.findAll({
+              where: { followerUserId: post.userId },
+            });
+
+            console.log(
+              "--------------------->userPostListWithImg",
+              userPostListWithImg
+            );
+
             return {
               post: {
                 ...post.dataValues,
@@ -133,7 +167,13 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
                 likes: likesPost ? true : false,
               },
               images,
-              user: { ...user.dataValues, avatar: profilePic.mediaFileId },
+              user: {
+                ...user.dataValues,
+                avatar: profilePic.mediaFileId,
+                posts: userPostListWithImg,
+                followers: followers.length,
+                following: following.length,
+              },
             };
           })
         );
@@ -184,10 +224,13 @@ async function likePost(postId: number, userId: number) {
   try {
     // const { postId, userId } = req.body;
 
+    console.log(postId, userId, "like post ------------------------->");
     const like = await Post_likes.create({
       postId,
       userId,
     });
+
+    console.log(like, "like ------------------------->");
 
     return like;
 
