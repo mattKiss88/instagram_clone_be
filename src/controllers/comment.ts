@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { uploadFile, getFileStream } from "../helpers/s3";
 const { Op } = require("sequelize");
 
-const { Comment } = require("../../models");
+const { Comment, User, Profile_picture } = require("../../models");
 require("dotenv").config();
 
 async function addComment(req: Request, res: Response, next: NextFunction) {
@@ -53,17 +53,30 @@ async function getCommentsByPostId(
       },
     });
 
-    comments = comments.map((comment: any) => {
-      return {
-        ...comment.dataValues,
-        subComments: subComments.filter(
-          (subComment: any) => subComment.commentRepliedToId === comment.id
-        ),
-      };
-    });
+    comments = await Promise.all(
+      comments.map(async (comment: any) => {
+        const user = await User.findOne({
+          where: { id: comment.createdByUserId },
+          raw: true,
+        });
 
+        const avatar = await Profile_picture.findOne({
+          where: { userId: comment.createdByUserId },
+        });
+
+        console.log(user);
+        return {
+          ...comment.dataValues,
+          subComments: subComments.filter(
+            (subComment: any) => subComment.commentRepliedToId === comment.id
+          ),
+          user: { ...user, avatar: avatar?.mediaFileId },
+        };
+      })
+    );
+    console.log("---------------------------------->", comments);
     res.status(200).send({
-      ...comments,
+      comments,
     });
   } catch (error) {
     console.log(error);
