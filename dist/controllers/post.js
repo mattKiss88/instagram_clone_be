@@ -50,10 +50,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleLike = exports.getFeed = exports.getImage = exports.getAllPosts = exports.createPost = void 0;
+exports.getRecommendedFriends = exports.toggleLike = exports.getFeed = exports.getImage = exports.getAllPosts = exports.createPost = void 0;
 var s3_1 = require("../helpers/s3");
 var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
+var sequelize_1 = require("sequelize");
 var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes;
 require("dotenv").config();
 var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
@@ -106,6 +107,8 @@ function getAllPosts(req, res, next) {
                 case 0:
                     _a.trys.push([0, 5, , 6]);
                     id = req.params.id;
+                    !id && res.status(400).send("id is required");
+                    console.log("get all posts ------------------->,", id);
                     return [4 /*yield*/, Post.findAll({
                             where: { userId: id },
                         })];
@@ -128,9 +131,12 @@ function getAllPosts(req, res, next) {
                     postArr = _a.sent();
                     return [4 /*yield*/, User.findOne({
                             where: { id: id },
+                            raw: true,
                         })];
                 case 3:
                     user = _a.sent();
+                    console.log("--------------------->user", user);
+                    delete user.password;
                     return [4 /*yield*/, Profile_picture.findOne({
                             where: { userId: id },
                         })];
@@ -138,7 +144,7 @@ function getAllPosts(req, res, next) {
                     profilePic = _a.sent();
                     res.status(201).send({
                         posts: postArr,
-                        user: { username: user.username, avatar: profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId },
+                        user: __assign(__assign({}, user), { avatar: profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId }),
                     });
                     return [3 /*break*/, 6];
                 case 5:
@@ -177,12 +183,15 @@ function getFeed(req, res, next) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
+                    console.log("get feed ------------------->", req === null || req === void 0 ? void 0 : req.user);
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 4, , 5]);
                     id_1 = req.params.id;
                     return [4 /*yield*/, Follower.findAll({
                             where: { followerUserId: id_1 },
                         })];
-                case 1:
+                case 2:
                     following = _a.sent();
                     return [4 /*yield*/, Promise.all(following.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
                             var posts, postArr;
@@ -196,7 +205,8 @@ function getFeed(req, res, next) {
                                         posts = _a.sent();
                                         console.log(posts, "posts---------------------------------->");
                                         return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
-                                                var images, user, profilePic, totalLikes, likesPost;
+                                                var images, user, profilePic, totalLikes, likesPost, userPostList, userPostListWithImg, followers, following;
+                                                var _this = this;
                                                 return __generator(this, function (_a) {
                                                     switch (_a.label) {
                                                         case 0: return [4 /*yield*/, Post_media.findAll({
@@ -209,6 +219,7 @@ function getFeed(req, res, next) {
                                                                 })];
                                                         case 2:
                                                             user = _a.sent();
+                                                            delete user.dataValues.password;
                                                             console.log(user, "user ----------------------------------->");
                                                             return [4 /*yield*/, Profile_picture.findOne({
                                                                     where: { userId: post.userId },
@@ -225,10 +236,41 @@ function getFeed(req, res, next) {
                                                                 })];
                                                         case 5:
                                                             likesPost = _a.sent();
+                                                            return [4 /*yield*/, Post.findAll({
+                                                                    where: { userId: post.userId },
+                                                                })];
+                                                        case 6:
+                                                            userPostList = _a.sent();
+                                                            return [4 /*yield*/, Promise.all(userPostList.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
+                                                                    var images;
+                                                                    return __generator(this, function (_a) {
+                                                                        switch (_a.label) {
+                                                                            case 0: return [4 /*yield*/, Post_media.findAll({
+                                                                                    where: { postId: post.id },
+                                                                                })];
+                                                                            case 1:
+                                                                                images = _a.sent();
+                                                                                return [2 /*return*/, { post: post, images: images }];
+                                                                        }
+                                                                    });
+                                                                }); }))];
+                                                        case 7:
+                                                            userPostListWithImg = _a.sent();
+                                                            return [4 /*yield*/, Follower.findAll({
+                                                                    where: { followingUserId: post.userId },
+                                                                })];
+                                                        case 8:
+                                                            followers = _a.sent();
+                                                            return [4 /*yield*/, Follower.findAll({
+                                                                    where: { followerUserId: post.userId },
+                                                                })];
+                                                        case 9:
+                                                            following = _a.sent();
+                                                            console.log("--------------------->userPostListWithImg", userPostListWithImg);
                                                             return [2 /*return*/, {
                                                                     post: __assign(__assign({}, post.dataValues), { totalLikes: totalLikes.length, likes: likesPost ? true : false }),
                                                                     images: images,
-                                                                    user: __assign(__assign({}, user.dataValues), { avatar: profilePic.mediaFileId }),
+                                                                    user: __assign(__assign({}, user.dataValues), { avatar: profilePic.mediaFileId, posts: userPostListWithImg, followers: followers.length, following: following.length }),
                                                                 }];
                                                     }
                                                 });
@@ -245,18 +287,16 @@ function getFeed(req, res, next) {
                                 .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
                         })
                             .catch(function (err) { return console.log(err); })];
-                case 2:
-                    feedArr = _a.sent();
-                    res.status(201).send({
-                        feed: feedArr,
-                    });
-                    return [3 /*break*/, 4];
                 case 3:
+                    feedArr = _a.sent();
+                    res.cookie("name", "express").send({ feed: feedArr }); //Sets name = express
+                    return [3 /*break*/, 5];
+                case 4:
                     error_3 = _a.sent();
-                    console.log(error_3);
+                    console.log(error_3, "-------------------------wakanda forever");
                     res.status(400).send(error_3);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     });
@@ -382,3 +422,59 @@ function getLikes(req, res, next) {
         });
     });
 }
+// protected
+function getRecommendedFriends(req, res, next) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function () {
+        var usersNotFollowing, usersNotFollowingWithProfilePic, error_8;
+        var _c;
+        var _this = this;
+        return __generator(this, function (_d) {
+            switch (_d.label) {
+                case 0:
+                    console.log("get recommended friends ------------------->", req === null || req === void 0 ? void 0 : req.user);
+                    _d.label = 1;
+                case 1:
+                    _d.trys.push([1, 4, , 5]);
+                    return [4 /*yield*/, User.findAll({
+                            attributes: { exclude: ["password"] },
+                            where: {
+                                id: (_c = {},
+                                    _c[sequelize_1.Op.notIn] = [
+                                        sequelize_1.Sequelize.literal("(SELECT followingUserId FROM followers WHERE followerUserId = ".concat((_b = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.id, ")")),
+                                    ],
+                                    _c),
+                            },
+                            limit: 7,
+                        })];
+                case 2:
+                    usersNotFollowing = _d.sent();
+                    console.log("REACHED HERE ***********************");
+                    return [4 /*yield*/, Promise.all(usersNotFollowing.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
+                            var profilePic;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, Profile_picture.findOne({
+                                            where: { userId: user.id },
+                                        })];
+                                    case 1:
+                                        profilePic = _a.sent();
+                                        return [2 /*return*/, __assign(__assign({}, user.dataValues), { avatar: (profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId) || null })];
+                                }
+                            });
+                        }); }))];
+                case 3:
+                    usersNotFollowingWithProfilePic = _d.sent();
+                    res.status(200).send({ users: usersNotFollowingWithProfilePic });
+                    return [3 /*break*/, 5];
+                case 4:
+                    error_8 = _d.sent();
+                    res.status(400).send({ error: "Error getting recommended friends" });
+                    console.log("ERROR getting recommended friends *******************************************");
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.getRecommendedFriends = getRecommendedFriends;

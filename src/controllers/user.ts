@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { uploadFile, getFileStream } from "../helpers/s3";
 
 const { Post, User, Profile_picture, Follower } = require("../../models");
 require("dotenv").config();
@@ -47,4 +46,34 @@ async function getUser(req: any, res: Response, next: NextFunction) {
   }
 }
 
-export { getUser };
+async function followUser(req: any, res: Response, next: NextFunction) {
+  try {
+    const userObj = req.user.user;
+
+    // check if user is already following
+
+    const following = await Follower.findOne({
+      where: {
+        followerUserId: userObj?.id,
+        followingUserId: req.body?.userId,
+      },
+    });
+
+    if (following) {
+      return res.status(400).send("You are already following this user");
+    }
+
+    const follow = await Follower.create({
+      followerUserId: userObj.id,
+      followingUserId: req.body.userId,
+      createdAt: new Date(),
+    });
+
+    res.status(201).send({ follow });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send(error);
+  }
+}
+
+export { getUser, followUser };

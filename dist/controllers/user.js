@@ -47,7 +47,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUser = void 0;
+exports.followUser = exports.getUser = void 0;
 var _a = require("../../models"), Post = _a.Post, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower;
 require("dotenv").config();
 function getUser(req, res, next) {
@@ -100,3 +100,43 @@ function getUser(req, res, next) {
     });
 }
 exports.getUser = getUser;
+function followUser(req, res, next) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function () {
+        var userObj, following, follow, error_2;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 3, , 4]);
+                    userObj = req.user.user;
+                    return [4 /*yield*/, Follower.findOne({
+                            where: {
+                                followerUserId: userObj === null || userObj === void 0 ? void 0 : userObj.id,
+                                followingUserId: (_a = req.body) === null || _a === void 0 ? void 0 : _a.userId,
+                            },
+                        })];
+                case 1:
+                    following = _b.sent();
+                    if (following) {
+                        return [2 /*return*/, res.status(400).send("You are already following this user")];
+                    }
+                    return [4 /*yield*/, Follower.create({
+                            followerUserId: userObj.id,
+                            followingUserId: req.body.userId,
+                            createdAt: new Date(),
+                        })];
+                case 2:
+                    follow = _b.sent();
+                    res.status(201).send({ follow: follow });
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_2 = _b.sent();
+                    console.log(error_2);
+                    res.status(400).send(error_2);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.followUser = followUser;

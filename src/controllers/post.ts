@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { uploadFile, getFileStream } from "../helpers/s3";
 import fs from "fs";
 import util from "util";
+import { Op, Sequelize } from "sequelize";
+import { getUserDetails } from "../helpers/getUserPostsAndStats";
 const {
   Post,
   Post_media,
@@ -42,6 +44,11 @@ async function createPost(req: any, res: Response, next: NextFunction) {
 async function getAllPosts(req: any, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+
+    !id && res.status(400).send("id is required");
+
+    console.log("get all posts ------------------->,", id);
+
     const posts = await Post.findAll({
       where: { userId: id },
     });
@@ -92,7 +99,11 @@ async function getImage(req: any, res: Response, next: NextFunction) {
   }
 }
 
-async function getFeed(req: Request, res: Response, next: NextFunction) {
+export interface UserRequest extends Request {
+  user?: any;
+}
+async function getFeed(req: UserRequest, res: Response, next: NextFunction) {
+  console.log("get feed ------------------->", req?.user);
   try {
     const { id } = req.params;
     const following = await Follower.findAll({
@@ -113,18 +124,6 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
               where: { postId: post.id },
             });
 
-            const user = await User.findOne({
-              where: { id: post.userId },
-            });
-
-            delete user.dataValues.password;
-
-            console.log(user, "user ----------------------------------->");
-
-            const profilePic = await Profile_picture.findOne({
-              where: { userId: post.userId },
-            });
-
             const totalLikes = await Post_likes.findAll({
               where: { postId: post.id },
             });
@@ -133,31 +132,11 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
               where: { postId: post.id, userId: id },
             });
 
-            const userPostList = await Post.findAll({
-              where: { userId: post.userId },
-            });
-
-            const userPostListWithImg = await Promise.all(
-              userPostList.map(async (post: any) => {
-                const images = await Post_media.findAll({
-                  where: { postId: post.id },
-                });
-
-                return { post, images };
-              })
-            );
-
-            const followers = await Follower.findAll({
-              where: { followingUserId: post.userId },
-            });
-
-            const following = await Follower.findAll({
-              where: { followerUserId: post.userId },
-            });
+            const userDetails = await getUserDetails(post?.userId);
 
             console.log(
-              "--------------------->userPostListWithImg",
-              userPostListWithImg
+              userDetails,
+              "userDetails---------------------------------->"
             );
 
             return {
@@ -168,11 +147,7 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
               },
               images,
               user: {
-                ...user.dataValues,
-                avatar: profilePic.mediaFileId,
-                posts: userPostListWithImg,
-                followers: followers.length,
-                following: following.length,
+                ...userDetails,
               },
             };
           })
@@ -188,11 +163,13 @@ async function getFeed(req: Request, res: Response, next: NextFunction) {
       })
       .catch((err) => console.log(err));
 
-    res.status(201).send({
-      feed: feedArr,
-    });
+    res.cookie("name", "express").send({ feed: feedArr }); //Sets name = express
+
+    // res.status(201).send({
+    //   feed: feedArr,
+    // });
   } catch (error) {
-    console.log(error);
+    console.log(error, "-------------------------wakanda forever");
     res.status(400).send(error);
   }
 }
@@ -287,4 +264,54 @@ async function getLikes(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export { createPost, getAllPosts, getImage, getFeed, toggleLike };
+// protected
+
+async function getRecommendedFriends(
+  req: UserRequest,
+  res: Response,
+  next: NextFunction
+) {
+  console.log("get recommended friends ------------------->", req?.user);
+
+  try {
+    const usersNotFollowing = await User.findAll({
+      attributes: { exclude: ["password"] },
+      where: {
+        id: {
+          [Op.notIn]: [
+            Sequelize.literal(
+              `(SELECT followingUserId FROM followers WHERE followerUserId = ${req?.user?.user?.id})`
+            ),
+          ],
+        },
+      },
+      limit: 7,
+    });
+    console.log("REACHED HERE ***********************");
+    const usersNotFollowingWithProfilePic = await Promise.all(
+      usersNotFollowing.map(async (user: any) => {
+        const profilePic = await Profile_picture.findOne({
+          where: { userId: user.id },
+        });
+
+        return { ...user.dataValues, avatar: profilePic?.mediaFileId || null };
+      })
+    );
+
+    res.status(200).send({ users: usersNotFollowingWithProfilePic });
+  } catch (error) {
+    res.status(400).send({ error: "Error getting recommended friends" });
+    console.log(
+      "ERROR getting recommended friends *******************************************"
+    );
+  }
+}
+
+export {
+  createPost,
+  getAllPosts,
+  getImage,
+  getFeed,
+  toggleLike,
+  getRecommendedFriends,
+};

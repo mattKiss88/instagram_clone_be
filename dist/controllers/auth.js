@@ -62,28 +62,31 @@ var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 var moment_1 = __importDefault(require("moment"));
 function getUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, email, password, user, validPassword, accessToken, _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var _a, email, password, user, validPassword, accessToken, err_1;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
-                    _c.trys.push([0, 3, , 4]);
+                    _b.trys.push([0, 3, , 4]);
                     _a = req.body, email = _a.email, password = _a.password;
                     return [4 /*yield*/, User.findOne({ where: { email: email } })];
                 case 1:
-                    user = _c.sent();
+                    user = _b.sent();
                     if (!user)
                         throw new Error("User not found");
                     return [4 /*yield*/, bcrypt.compare(password, user.password)];
                 case 2:
-                    validPassword = _c.sent();
+                    validPassword = _b.sent();
                     if (!validPassword)
                         throw new Error("Invalid password");
                     accessToken = jwt.sign({ user: user }, process.env.ACCESS_TOKEN_SECRET);
-                    res.send({ accessToken: accessToken });
+                    res.send({ accessToken: accessToken, user: user });
                     return [3 /*break*/, 4];
                 case 3:
-                    _b = _c.sent();
-                    return [2 /*return*/, res.status(400).send("Invalid email or password")];
+                    err_1 = _b.sent();
+                    console.log(err_1 === null || err_1 === void 0 ? void 0 : err_1.message, "-------------------->");
+                    return [2 /*return*/, res
+                            .status(400)
+                            .send("Sorry, your password was incorrect. Please double-check your password.")];
                 case 4: return [2 /*return*/];
             }
         });
@@ -92,16 +95,16 @@ function getUser(req, res, next) {
 exports.getUser = getUser;
 function createUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, email, password, username, fullName, dob, bio, hashedPassword, file, user, err_1;
+        var _a, email, password, username, fullName, dob, bio, hashedPassword, file, user, accessToken, err_2;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     _b.trys.push([0, 7, , 8]);
-                    _a = JSON.parse(req.body.userData), email = _a.email, password = _a.password, username = _a.username, fullName = _a.fullName, dob = _a.dob, bio = _a.bio;
+                    _a = req.body.userData, email = _a.email, password = _a.password, username = _a.username, fullName = _a.fullName, dob = _a.dob, bio = _a.bio;
                     return [4 /*yield*/, bcrypt.hash(password, 10)];
                 case 1:
                     hashedPassword = _b.sent();
-                    file = req.file;
+                    file = req === null || req === void 0 ? void 0 : req.file;
                     return [4 /*yield*/, User.create({
                             email: email,
                             password: hashedPassword,
@@ -112,7 +115,7 @@ function createUser(req, res, next) {
                         })];
                 case 2:
                     user = _b.sent();
-                    user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: file.filename || null });
+                    user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: (file === null || file === void 0 ? void 0 : file.filename) || "default.png" });
                     delete user.password;
                     if (!(file === null || file === void 0 ? void 0 : file.filename)) return [3 /*break*/, 6];
                     return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
@@ -129,13 +132,13 @@ function createUser(req, res, next) {
                     _b.sent();
                     _b.label = 6;
                 case 6:
-                    // const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
-                    res.status(200).send({ user: user });
+                    accessToken = jwt.sign({ user: user }, process.env.ACCESS_TOKEN_SECRET);
+                    res.status(200).send({ user: user, token: accessToken });
                     console.log("great success");
                     return [3 /*break*/, 8];
                 case 7:
-                    err_1 = _b.sent();
-                    console.log(err_1);
+                    err_2 = _b.sent();
+                    console.log(err_2);
                     return [2 /*return*/, res.status(400).send("Invalid email or password")];
                 case 8: return [2 /*return*/];
             }

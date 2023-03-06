@@ -12,3 +12,5 @@ function authenticateToken(req: any, res: Response, next: NextFunction) {
     next();
   });
 }
+
+export { authenticateToken };

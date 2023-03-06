@@ -47,19 +47,20 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCommentsByPostId = exports.addComment = void 0;
+exports.toggleCommentLike = exports.getCommentsByPostId = exports.addComment = void 0;
 var Op = require("sequelize").Op;
-var Comment = require("../../models").Comment;
+var _a = require("../../models"), Comment = _a.Comment, User = _a.User, Profile_picture = _a.Profile_picture, Comment_likes = _a.Comment_likes;
 require("dotenv").config();
 function addComment(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var post_id, _a, user_id, comment, commentRepliedToId, post, error_1;
+        var post_id, _a, comment, commentRepliedToId, user_id, post, error_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     _b.trys.push([0, 2, , 3]);
                     post_id = req.params.post_id;
-                    _a = req.body, user_id = _a.user_id, comment = _a.comment, commentRepliedToId = _a.commentRepliedToId;
+                    _a = req.body, comment = _a.comment, commentRepliedToId = _a.commentRepliedToId;
+                    user_id = req.user.user.id;
                     return [4 /*yield*/, Comment.create({
                             createdByUserId: user_id,
                             postId: post_id,
@@ -83,7 +84,7 @@ function addComment(req, res, next) {
 exports.addComment = addComment;
 function getCommentsByPostId(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var post_id, comments, subComments_1, error_2;
+        var post_id, user_id_1, comments, totalSubComments_1, error_2;
         var _a, _b;
         var _this = this;
         return __generator(this, function (_c) {
@@ -91,6 +92,8 @@ function getCommentsByPostId(req, res, next) {
                 case 0:
                     _c.trys.push([0, 4, , 5]);
                     post_id = req.params.post_id;
+                    user_id_1 = req.user.user.id;
+                    console.log("userid 99999999999999999999999999999", user_id_1);
                     return [4 /*yield*/, Comment.findAll({
                             where: {
                                 postId: post_id,
@@ -110,26 +113,48 @@ function getCommentsByPostId(req, res, next) {
                             },
                         })];
                 case 2:
-                    subComments_1 = _c.sent();
+                    totalSubComments_1 = _c.sent();
                     return [4 /*yield*/, Promise.all(comments.map(function (comment) { return __awaiter(_this, void 0, void 0, function () {
-                            var user;
+                            var user, avatar, totalLikes, liked, subComments;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
-                                    case 0: return [4 /*yield*/, comment.getUser()];
+                                    case 0: return [4 /*yield*/, User.findOne({
+                                            where: { id: comment.createdByUserId },
+                                            raw: true,
+                                        })];
                                     case 1:
                                         user = _a.sent();
-                                        console.log(user.dataValues);
-                                        return [2 /*return*/, __assign(__assign({}, comment.dataValues), { subComments: subComments_1.filter(function (subComment) { return subComment.commentRepliedToId === comment.id; }) })];
+                                        return [4 /*yield*/, Profile_picture.findOne({
+                                                where: { userId: comment.createdByUserId },
+                                            })];
+                                    case 2:
+                                        avatar = _a.sent();
+                                        return [4 /*yield*/, Comment_likes.count({
+                                                where: { commentId: comment.id },
+                                            })];
+                                    case 3:
+                                        totalLikes = _a.sent();
+                                        return [4 /*yield*/, Comment_likes.findOne({
+                                                where: { commentId: comment.id, userId: user_id_1 },
+                                            })];
+                                    case 4:
+                                        liked = _a.sent();
+                                        subComments = totalSubComments_1.filter(function (subComment) { return subComment.commentRepliedToId === comment.id; });
+                                        console.log(liked, "-zzzzzzzzzzzzzzzzzzzzzzzzz>");
+                                        return [2 /*return*/, __assign(__assign({}, comment.dataValues), { totalLikes: totalLikes, liked: liked === null ? false : true, subCommentCount: subComments === null || subComments === void 0 ? void 0 : subComments.length, subComments: subComments, user: __assign(__assign({}, user), { avatar: avatar === null || avatar === void 0 ? void 0 : avatar.mediaFileId }) })];
                                 }
                             });
                         }); }))];
                 case 3:
                     comments = _c.sent();
-                    res.status(200).send(__assign({}, comments));
+                    console.log("---------------------------------->", comments);
+                    res.status(200).send({
+                        comments: comments,
+                    });
                     return [3 /*break*/, 5];
                 case 4:
                     error_2 = _c.sent();
-                    console.log(error_2);
+                    console.log(error_2, "******************************* GET COMMENTS ERROR **********************************");
                     res.status(400).send(error_2);
                     return [3 /*break*/, 5];
                 case 5: return [2 /*return*/];
@@ -138,3 +163,42 @@ function getCommentsByPostId(req, res, next) {
     });
 }
 exports.getCommentsByPostId = getCommentsByPostId;
+function toggleCommentLike(req, res, next) {
+    return __awaiter(this, void 0, void 0, function () {
+        var commentId, userId, liked, totalLikes;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    commentId = req.body.commentId;
+                    userId = req.user.user.id;
+                    return [4 /*yield*/, Comment_likes.findOne({
+                            where: { commentId: commentId, userId: userId },
+                        })];
+                case 1:
+                    liked = _a.sent();
+                    if (!liked) return [3 /*break*/, 3];
+                    return [4 /*yield*/, Comment_likes.destroy({
+                            where: { commentId: commentId, userId: userId },
+                        })];
+                case 2:
+                    _a.sent();
+                    return [3 /*break*/, 5];
+                case 3: return [4 /*yield*/, Comment_likes.create({
+                        commentId: commentId,
+                        userId: userId,
+                    })];
+                case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5: return [4 /*yield*/, Comment_likes.count({
+                        where: { commentId: commentId },
+                    })];
+                case 6:
+                    totalLikes = _a.sent();
+                    res.status(200).send({ totalLikes: totalLikes });
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.toggleCommentLike = toggleCommentLike;

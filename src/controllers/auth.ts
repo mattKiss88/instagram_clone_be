@@ -23,21 +23,33 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
 
-    res.send({ accessToken });
-  } catch {
-    return res.status(400).send("Invalid email or password");
+    res.send({ accessToken, user });
+
+    // .cookie("access_token", accessToken, {
+    //   httpOnly: true,
+    //   sameSite: "none",
+    //   secure: true,
+    //   expires: new Date(Date.now() + 90000000),
+    // })
+
+    // res.status(200).send({ success: true });
+  } catch (err: any) {
+    console.log(err?.message, "-------------------->");
+    return res
+      .status(400)
+      .send(
+        "Sorry, your password was incorrect. Please double-check your password."
+      );
   }
 }
 
 async function createUser(req: any, res: Response, next: NextFunction) {
   try {
-    const { email, password, username, fullName, dob, bio } = JSON.parse(
-      req.body.userData
-    );
+    const { email, password, username, fullName, dob, bio } = req.body.userData;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const file = req.file;
+    const file = req?.file;
 
     let user = await User.create({
       email,
@@ -51,7 +63,7 @@ async function createUser(req: any, res: Response, next: NextFunction) {
     user = {
       ...user.dataValues,
       dob: moment(user.dataValues.dob).format("YYYY-MM-DD"),
-      profilePic: file.filename || null,
+      profilePic: file?.filename ? file.filename : "default.png",
     };
 
     delete user.password;
@@ -65,11 +77,16 @@ async function createUser(req: any, res: Response, next: NextFunction) {
       });
 
       await unlinkFile(file.path);
+    } else {
+      await Profile_picture.create({
+        userId: user.id,
+        mediaFileId: "default.png",
+      });
     }
 
-    // const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
+    const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
 
-    res.status(200).send({ user });
+    res.status(200).send({ user, token: accessToken });
     console.log("great success");
   } catch (err) {
     console.log(err);
