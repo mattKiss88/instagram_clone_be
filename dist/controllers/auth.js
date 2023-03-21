@@ -99,7 +99,7 @@ function createUser(req, res, next) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 7, , 8]);
+                    _b.trys.push([0, 9, , 10]);
                     _a = req.body.userData, email = _a.email, password = _a.password, username = _a.username, fullName = _a.fullName, dob = _a.dob, bio = _a.bio;
                     return [4 /*yield*/, bcrypt.hash(password, 10)];
                 case 1:
@@ -115,7 +115,7 @@ function createUser(req, res, next) {
                         })];
                 case 2:
                     user = _b.sent();
-                    user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: (file === null || file === void 0 ? void 0 : file.filename) || "default.png" });
+                    user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: (file === null || file === void 0 ? void 0 : file.filename) ? file.filename : "default.png" });
                     delete user.password;
                     if (!(file === null || file === void 0 ? void 0 : file.filename)) return [3 /*break*/, 6];
                     return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
@@ -130,17 +130,24 @@ function createUser(req, res, next) {
                     return [4 /*yield*/, unlinkFile(file.path)];
                 case 5:
                     _b.sent();
-                    _b.label = 6;
-                case 6:
+                    return [3 /*break*/, 8];
+                case 6: return [4 /*yield*/, Profile_picture.create({
+                        userId: user.id,
+                        mediaFileId: "default.png",
+                    })];
+                case 7:
+                    _b.sent();
+                    _b.label = 8;
+                case 8:
                     accessToken = jwt.sign({ user: user }, process.env.ACCESS_TOKEN_SECRET);
                     res.status(200).send({ user: user, token: accessToken });
                     console.log("great success");
-                    return [3 /*break*/, 8];
-                case 7:
+                    return [3 /*break*/, 10];
+                case 9:
                     err_2 = _b.sent();
                     console.log(err_2);
                     return [2 /*return*/, res.status(400).send("Invalid email or password")];
-                case 8: return [2 /*return*/];
+                case 10: return [2 /*return*/];
             }
         });
     });

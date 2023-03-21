@@ -47,8 +47,6 @@ async function getCommentsByPostId(
     const { post_id } = req.params;
     const user_id = req.user.user.id;
 
-    console.log("userid 99999999999999999999999999999", user_id);
-
     let comments = await Comment.findAll({
       where: {
         postId: post_id,
@@ -69,7 +67,7 @@ async function getCommentsByPostId(
 
     comments = await Promise.all(
       comments.map(async (comment: any) => {
-        const totalLikes = await Comment_likes.count({
+        const likeCount = await Comment_likes.count({
           where: { commentId: comment.id },
         });
 
@@ -79,13 +77,38 @@ async function getCommentsByPostId(
 
         const userDetails = await getUserDetails(comment.createdByUserId);
 
-        const subComments = totalSubComments.filter(
-          (subComment: any) => subComment.commentRepliedToId === comment.id
+        const subComments = await Promise.all(
+          totalSubComments
+            .filter(
+              (subComment: any) => subComment.commentRepliedToId === comment.id
+            )
+            .map(async (subComment: any) => {
+              const subCommentUserDetails = await getUserDetails(
+                subComment.createdByUserId
+              );
+
+              const subCommentLiked = await Comment_likes.findOne({
+                where: { commentId: subComment.id, userId: user_id },
+              });
+
+              const subCommentTotalLikes = await Comment_likes.count({
+                where: { commentId: subComment.id },
+              });
+
+              return {
+                ...subComment.dataValues,
+                liked: subCommentLiked === null ? false : true,
+                likeCount: subCommentTotalLikes,
+                user: {
+                  ...subCommentUserDetails,
+                },
+              };
+            })
         );
 
         return {
           ...comment.dataValues,
-          totalLikes,
+          likeCount,
           liked: liked === null ? false : true,
           subCommentCount: subComments?.length,
           subComments,
@@ -95,6 +118,13 @@ async function getCommentsByPostId(
         };
       })
     );
+
+    //  order comments by date
+
+    comments.sort((a: any, b: any) => {
+      return (new Date(b.createdAt) as any) - (new Date(a?.createdAt) as any);
+    });
+
     res.status(200).send({
       comments,
     });
@@ -128,10 +158,10 @@ async function toggleCommentLike(
       userId,
     });
   }
-  const totalLikes = await Comment_likes.count({
+  const likeCount = await Comment_likes.count({
     where: { commentId },
   });
-  res.status(200).send({ totalLikes });
+  res.status(200).send({ likeCount });
 }
 
 export { addComment, getCommentsByPostId, toggleCommentLike };

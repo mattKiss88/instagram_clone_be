@@ -48,15 +48,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.followUser = exports.getUser = void 0;
+var getUserPostsAndStats_1 = require("../helpers/getUserPostsAndStats");
 var _a = require("../../models"), Post = _a.Post, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower;
 require("dotenv").config();
 function getUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var id, user, profilePic, posts, followers, following, error_1;
+        var id, user, userDetails, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 6, , 7]);
+                    _a.trys.push([0, 3, , 4]);
                     id = req.params.id;
                     return [4 /*yield*/, User.findOne({
                             where: { id: id },
@@ -65,36 +66,19 @@ function getUser(req, res, next) {
                     user = _a.sent();
                     user = user.dataValues;
                     delete user.password;
-                    return [4 /*yield*/, Profile_picture.findOne({
-                            where: { userId: id },
-                        })];
+                    return [4 /*yield*/, (0, getUserPostsAndStats_1.getUserDetails)(user.id)];
                 case 2:
-                    profilePic = _a.sent();
-                    return [4 /*yield*/, Post.findAll({
-                            where: { userId: id },
-                        })];
-                case 3:
-                    posts = _a.sent();
-                    return [4 /*yield*/, Follower.findAll({
-                            where: { followerUserId: id },
-                        })];
-                case 4:
-                    followers = _a.sent();
-                    return [4 /*yield*/, Follower.findAll({
-                            where: { followingUserId: id },
-                        })];
-                case 5:
-                    following = _a.sent();
+                    userDetails = _a.sent();
                     res.status(201).send({
-                        user: __assign(__assign({}, user), { avatar: profilePic.mediaFileId, posts: posts.length, followers: followers.length, following: following.length }),
+                        user: __assign({}, userDetails),
                     });
-                    return [3 /*break*/, 7];
-                case 6:
+                    return [3 /*break*/, 4];
+                case 3:
                     error_1 = _a.sent();
                     console.log(error_1);
                     res.status(400).send(error_1);
-                    return [3 /*break*/, 7];
-                case 7: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });

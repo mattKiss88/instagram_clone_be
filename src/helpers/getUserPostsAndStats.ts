@@ -5,6 +5,7 @@ const {
   Profile_picture,
   Follower,
   Post_likes,
+  Comment,
 } = require("../../models");
 export const getUserDetails = async (userId: number) => {
   try {
@@ -28,7 +29,22 @@ export const getUserDetails = async (userId: number) => {
           where: { postId: post.id },
         });
 
-        return { post, images };
+        const likes = await Post_likes.findAll({
+          where: { postId: post.id },
+        });
+
+        const comments = await Comment.findAll({
+          where: { postId: post.id },
+        });
+
+        return {
+          post: {
+            ...post.dataValues,
+            likeCount: likes?.length,
+            commentCount: comments?.length,
+          },
+          images,
+        };
       })
     );
 

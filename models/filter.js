@@ -21,5 +21,9 @@ module.exports = (sequelize, DataTypes) => {
       modelName: "Filter",
     }
   );
+
+  Filter.removeAttribute("updatedAt");
+  Filter.removeAttribute("createdAt");
+
   return Filter;
 };

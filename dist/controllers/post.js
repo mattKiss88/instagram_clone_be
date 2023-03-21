@@ -55,44 +55,52 @@ var s3_1 = require("../helpers/s3");
 var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
 var sequelize_1 = require("sequelize");
-var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes;
+var getUserPostsAndStats_1 = require("../helpers/getUserPostsAndStats");
+var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes, Filter = _a.Filter;
 require("dotenv").config();
 var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 function createPost(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var file, post, image, error_1;
+        var file, post, filter, image, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 5, , 6]);
+                    _a.trys.push([0, 6, , 7]);
                     file = req.file;
                     return [4 /*yield*/, (0, s3_1.uploadFile)(file)];
                 case 1:
                     _a.sent();
                     return [4 /*yield*/, Post.create({
                             caption: req.body.caption,
-                            userId: req.body.userId,
+                            userId: req.user.user.id,
                         })];
                 case 2:
                     post = _a.sent();
+                    console.log("name", req.body);
+                    return [4 /*yield*/, Filter.findOne({
+                            where: { filterName: req.body.filter },
+                        })];
+                case 3:
+                    filter = _a.sent();
                     return [4 /*yield*/, Post_media.create({
                             postId: post.id,
                             mediaFileId: file.filename,
                             position: 1,
+                            filterId: (filter === null || filter === void 0 ? void 0 : filter.id) || null,
                         })];
-                case 3:
+                case 4:
                     image = _a.sent();
                     return [4 /*yield*/, unlinkFile(file.path)];
-                case 4:
+                case 5:
                     _a.sent();
                     res.status(201).send({ post: post, image: image });
-                    return [3 /*break*/, 6];
-                case 5:
+                    return [3 /*break*/, 7];
+                case 6:
                     error_1 = _a.sent();
                     console.log(error_1);
                     res.status(400).send(error_1);
-                    return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
             }
         });
     });
@@ -183,15 +191,12 @@ function getFeed(req, res, next) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log("get feed ------------------->", req === null || req === void 0 ? void 0 : req.user);
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 4, , 5]);
+                    _a.trys.push([0, 3, , 4]);
                     id_1 = req.params.id;
                     return [4 /*yield*/, Follower.findAll({
                             where: { followerUserId: id_1 },
                         })];
-                case 2:
+                case 1:
                     following = _a.sent();
                     return [4 /*yield*/, Promise.all(following.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
                             var posts, postArr;
@@ -203,74 +208,42 @@ function getFeed(req, res, next) {
                                         })];
                                     case 1:
                                         posts = _a.sent();
-                                        console.log(posts, "posts---------------------------------->");
                                         return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
-                                                var images, user, profilePic, totalLikes, likesPost, userPostList, userPostListWithImg, followers, following;
-                                                var _this = this;
-                                                return __generator(this, function (_a) {
-                                                    switch (_a.label) {
+                                                var images, filter, likeCount, likesPost, userDetails;
+                                                var _a;
+                                                return __generator(this, function (_b) {
+                                                    switch (_b.label) {
                                                         case 0: return [4 /*yield*/, Post_media.findAll({
                                                                 where: { postId: post.id },
                                                             })];
                                                         case 1:
-                                                            images = _a.sent();
-                                                            return [4 /*yield*/, User.findOne({
-                                                                    where: { id: post.userId },
+                                                            images = _b.sent();
+                                                            return [4 /*yield*/, Filter.findOne({
+                                                                    where: { id: (_a = images[0]) === null || _a === void 0 ? void 0 : _a.filterId },
                                                                 })];
                                                         case 2:
-                                                            user = _a.sent();
-                                                            delete user.dataValues.password;
-                                                            console.log(user, "user ----------------------------------->");
-                                                            return [4 /*yield*/, Profile_picture.findOne({
-                                                                    where: { userId: post.userId },
-                                                                })];
-                                                        case 3:
-                                                            profilePic = _a.sent();
+                                                            filter = _b.sent();
+                                                            console.log(filter, "filter101");
                                                             return [4 /*yield*/, Post_likes.findAll({
                                                                     where: { postId: post.id },
                                                                 })];
-                                                        case 4:
-                                                            totalLikes = _a.sent();
+                                                        case 3:
+                                                            likeCount = _b.sent();
                                                             return [4 /*yield*/, Post_likes.findOne({
                                                                     where: { postId: post.id, userId: id_1 },
                                                                 })];
+                                                        case 4:
+                                                            likesPost = _b.sent();
+                                                            return [4 /*yield*/, (0, getUserPostsAndStats_1.getUserDetails)(post === null || post === void 0 ? void 0 : post.userId)];
                                                         case 5:
-                                                            likesPost = _a.sent();
-                                                            return [4 /*yield*/, Post.findAll({
-                                                                    where: { userId: post.userId },
-                                                                })];
-                                                        case 6:
-                                                            userPostList = _a.sent();
-                                                            return [4 /*yield*/, Promise.all(userPostList.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
-                                                                    var images;
-                                                                    return __generator(this, function (_a) {
-                                                                        switch (_a.label) {
-                                                                            case 0: return [4 /*yield*/, Post_media.findAll({
-                                                                                    where: { postId: post.id },
-                                                                                })];
-                                                                            case 1:
-                                                                                images = _a.sent();
-                                                                                return [2 /*return*/, { post: post, images: images }];
-                                                                        }
-                                                                    });
-                                                                }); }))];
-                                                        case 7:
-                                                            userPostListWithImg = _a.sent();
-                                                            return [4 /*yield*/, Follower.findAll({
-                                                                    where: { followingUserId: post.userId },
-                                                                })];
-                                                        case 8:
-                                                            followers = _a.sent();
-                                                            return [4 /*yield*/, Follower.findAll({
-                                                                    where: { followerUserId: post.userId },
-                                                                })];
-                                                        case 9:
-                                                            following = _a.sent();
-                                                            console.log("--------------------->userPostListWithImg", userPostListWithImg);
+                                                            userDetails = _b.sent();
                                                             return [2 /*return*/, {
-                                                                    post: __assign(__assign({}, post.dataValues), { totalLikes: totalLikes.length, likes: likesPost ? true : false }),
-                                                                    images: images,
-                                                                    user: __assign(__assign({}, user.dataValues), { avatar: profilePic.mediaFileId, posts: userPostListWithImg, followers: followers.length, following: following.length }),
+                                                                    post: __assign(__assign({}, post.dataValues), { likeCount: likeCount.length, likes: likesPost ? true : false }),
+                                                                    images: images.map(function (image) {
+                                                                        image.filter = filter === null || filter === void 0 ? void 0 : filter.filterName;
+                                                                        return image;
+                                                                    }),
+                                                                    user: __assign({}, userDetails),
                                                                 }];
                                                     }
                                                 });
@@ -287,16 +260,16 @@ function getFeed(req, res, next) {
                                 .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
                         })
                             .catch(function (err) { return console.log(err); })];
-                case 3:
+                case 2:
                     feedArr = _a.sent();
                     res.cookie("name", "express").send({ feed: feedArr }); //Sets name = express
-                    return [3 /*break*/, 5];
-                case 4:
+                    return [3 /*break*/, 4];
+                case 3:
                     error_3 = _a.sent();
                     console.log(error_3, "-------------------------wakanda forever");
                     res.status(400).send(error_3);
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
@@ -346,15 +319,12 @@ function likePost(postId, userId) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
-                    // const { postId, userId } = req.body;
-                    console.log(postId, userId, "like post ------------------------->");
                     return [4 /*yield*/, Post_likes.create({
                             postId: postId,
                             userId: userId,
                         })];
                 case 1:
                     like = _a.sent();
-                    console.log(like, "like ------------------------->");
                     return [2 /*return*/, like];
                 case 2:
                     error_5 = _a.sent();
@@ -426,7 +396,7 @@ function getLikes(req, res, next) {
 function getRecommendedFriends(req, res, next) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function () {
-        var usersNotFollowing, usersNotFollowingWithProfilePic, error_8;
+        var usersNotFollowing, usersNotFollowingDetails, error_8;
         var _c;
         var _this = this;
         return __generator(this, function (_d) {
@@ -449,23 +419,20 @@ function getRecommendedFriends(req, res, next) {
                         })];
                 case 2:
                     usersNotFollowing = _d.sent();
-                    console.log("REACHED HERE ***********************");
                     return [4 /*yield*/, Promise.all(usersNotFollowing.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
-                            var profilePic;
+                            var userDetails;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
-                                    case 0: return [4 /*yield*/, Profile_picture.findOne({
-                                            where: { userId: user.id },
-                                        })];
+                                    case 0: return [4 /*yield*/, (0, getUserPostsAndStats_1.getUserDetails)(user.id)];
                                     case 1:
-                                        profilePic = _a.sent();
-                                        return [2 /*return*/, __assign(__assign({}, user.dataValues), { avatar: (profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId) || null })];
+                                        userDetails = _a.sent();
+                                        return [2 /*return*/, __assign({}, userDetails)];
                                 }
                             });
                         }); }))];
                 case 3:
-                    usersNotFollowingWithProfilePic = _d.sent();
-                    res.status(200).send({ users: usersNotFollowingWithProfilePic });
+                    usersNotFollowingDetails = _d.sent();
+                    res.status(200).send({ users: usersNotFollowingDetails });
                     return [3 /*break*/, 5];
                 case 4:
                     error_8 = _d.sent();

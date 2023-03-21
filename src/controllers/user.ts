@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { getUserDetails } from "../helpers/getUserPostsAndStats";
 
 const { Post, User, Profile_picture, Follower } = require("../../models");
 require("dotenv").config();
@@ -15,29 +16,11 @@ async function getUser(req: any, res: Response, next: NextFunction) {
 
     delete user.password;
 
-    const profilePic = await Profile_picture.findOne({
-      where: { userId: id },
-    });
-
-    const posts = await Post.findAll({
-      where: { userId: id },
-    });
-
-    const followers = await Follower.findAll({
-      where: { followerUserId: id },
-    });
-
-    const following = await Follower.findAll({
-      where: { followingUserId: id },
-    });
+    let userDetails = await getUserDetails(user.id);
 
     res.status(201).send({
       user: {
-        ...user,
-        avatar: profilePic.mediaFileId,
-        posts: posts.length,
-        followers: followers.length,
-        following: following.length,
+        ...userDetails,
       },
     });
   } catch (error) {
