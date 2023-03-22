@@ -13,6 +13,7 @@ const {
   Follower,
   Post_likes,
   Filter,
+  Comment,
 } = require("../../models");
 require("dotenv").config();
 const unlinkFile = util.promisify(fs.unlink);
@@ -69,7 +70,28 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
           where: { postId: post.id },
         });
 
-        return { post, images };
+        // get image filter
+
+        const filter = await Filter.findOne({
+          where: { id: images[0]?.filterId || null },
+        });
+        if (images[0]) images[0].filter = filter?.filterName || null;
+
+        // get comment count
+
+        const commentCount = await Comment.count({
+          where: { postId: post.id },
+        });
+
+        // get like count
+
+        const likeCount = await Post_likes.count({
+          where: { postId: post.id },
+        });
+
+        accessLog("filter", filter);
+
+        return { post: { ...post, commentCount, likeCount }, images };
       })
     );
 
@@ -86,9 +108,20 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
       where: { userId: id },
     });
 
+    const following = await Follower.findOne({
+      where: {
+        followerUserId: id,
+        followingUserId: req.user.user.id,
+      },
+    });
+
     res.status(201).send({
       posts: postArr,
-      user: { ...user, avatar: profilePic?.mediaFileId },
+      user: {
+        ...user,
+        avatar: profilePic?.mediaFileId,
+        following: !!following,
+      },
     });
   } catch (error) {
     console.log(error);

@@ -18,9 +18,17 @@ async function getUser(req: any, res: Response, next: NextFunction) {
 
     let userDetails = await getUserDetails(user.id);
 
+    const isFollowing = await Follower.findOne({
+      where: {
+        followerUserId: req.user.user.id,
+        followingUserId: id,
+      },
+    });
+
     res.status(201).send({
       user: {
         ...userDetails,
+        isFollowing: !!isFollowing,
       },
     });
   } catch (error) {
@@ -43,7 +51,16 @@ async function followUser(req: any, res: Response, next: NextFunction) {
     });
 
     if (following) {
-      return res.status(400).send("You are already following this user");
+      // return res.status(400).send("You are already following this user");
+
+      await Follower.destroy({
+        where: {
+          followerUserId: userObj?.id,
+          followingUserId: req.body?.userId,
+        },
+      });
+
+      return res.status(201).send("Unfollowed");
     }
 
     const follow = await Follower.create({

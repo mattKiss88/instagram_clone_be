@@ -5,7 +5,7 @@ const router = Router();
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 
-router.get("/:id", getUser);
+router.get("/:id", auth, getUser);
 router.post("/follow", auth, followUser);
 
 export { router as userRouter };
