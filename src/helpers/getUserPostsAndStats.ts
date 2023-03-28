@@ -6,6 +6,7 @@ const {
   Follower,
   Post_likes,
   Comment,
+  Filter,
 } = require("../../models");
 export const getUserDetails = async (userId: number) => {
   try {
@@ -29,6 +30,12 @@ export const getUserDetails = async (userId: number) => {
           where: { postId: post.id },
         });
 
+        const filter = await Filter.findOne({
+          where: { id: images[0]?.filterId || null },
+        });
+
+        if (images[0]) images[0].filter = filter?.filterName || null;
+
         const likes = await Post_likes.findAll({
           where: { postId: post.id },
         });
@@ -43,7 +50,9 @@ export const getUserDetails = async (userId: number) => {
             likeCount: likes?.length,
             commentCount: comments?.length,
           },
-          images,
+          images: images.map((image: any) => {
+            return { ...image.dataValues, filter: image.filter || null };
+          }),
         };
       })
     );

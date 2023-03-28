@@ -56,7 +56,8 @@ var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
 var sequelize_1 = require("sequelize");
 var getUserPostsAndStats_1 = require("../helpers/getUserPostsAndStats");
-var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes, Filter = _a.Filter;
+var logger_1 = require("../helpers/logger");
+var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes, Filter = _a.Filter, Comment = _a.Comment;
 require("dotenv").config();
 var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 function createPost(req, res, next) {
@@ -108,12 +109,12 @@ function createPost(req, res, next) {
 exports.createPost = createPost;
 function getAllPosts(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var id, posts, postArr, user, profilePic, error_2;
+        var id, posts, postArr, user, profilePic, following, error_2;
         var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 5, , 6]);
+                    _a.trys.push([0, 6, , 7]);
                     id = req.params.id;
                     !id && res.status(400).send("id is required");
                     console.log("get all posts ------------------->,", id);
@@ -123,15 +124,34 @@ function getAllPosts(req, res, next) {
                 case 1:
                     posts = _a.sent();
                     return [4 /*yield*/, Promise.all(posts.map(function (post) { return __awaiter(_this, void 0, void 0, function () {
-                            var images;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
+                            var images, filter, commentCount, likeCount;
+                            var _a;
+                            return __generator(this, function (_b) {
+                                switch (_b.label) {
                                     case 0: return [4 /*yield*/, Post_media.findAll({
                                             where: { postId: post.id },
                                         })];
                                     case 1:
-                                        images = _a.sent();
-                                        return [2 /*return*/, { post: post, images: images }];
+                                        images = _b.sent();
+                                        return [4 /*yield*/, Filter.findOne({
+                                                where: { id: ((_a = images[0]) === null || _a === void 0 ? void 0 : _a.filterId) || null },
+                                            })];
+                                    case 2:
+                                        filter = _b.sent();
+                                        if (images[0])
+                                            images[0].filter = (filter === null || filter === void 0 ? void 0 : filter.filterName) || null;
+                                        return [4 /*yield*/, Comment.count({
+                                                where: { postId: post.id },
+                                            })];
+                                    case 3:
+                                        commentCount = _b.sent();
+                                        return [4 /*yield*/, Post_likes.count({
+                                                where: { postId: post.id },
+                                            })];
+                                    case 4:
+                                        likeCount = _b.sent();
+                                        (0, logger_1.accessLog)("filter", filter);
+                                        return [2 /*return*/, { post: __assign(__assign({}, post), { commentCount: commentCount, likeCount: likeCount }), images: images }];
                                 }
                             });
                         }); }))];
@@ -150,17 +170,25 @@ function getAllPosts(req, res, next) {
                         })];
                 case 4:
                     profilePic = _a.sent();
+                    return [4 /*yield*/, Follower.findOne({
+                            where: {
+                                followerUserId: id,
+                                followingUserId: req.user.user.id,
+                            },
+                        })];
+                case 5:
+                    following = _a.sent();
                     res.status(201).send({
                         posts: postArr,
-                        user: __assign(__assign({}, user), { avatar: profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId }),
+                        user: __assign(__assign({}, user), { avatar: profilePic === null || profilePic === void 0 ? void 0 : profilePic.mediaFileId, following: !!following }),
                     });
-                    return [3 /*break*/, 6];
-                case 5:
+                    return [3 /*break*/, 7];
+                case 6:
                     error_2 = _a.sent();
                     console.log(error_2);
                     res.status(400).send(error_2);
-                    return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
             }
         });
     });
@@ -219,11 +247,11 @@ function getFeed(req, res, next) {
                                                         case 1:
                                                             images = _b.sent();
                                                             return [4 /*yield*/, Filter.findOne({
-                                                                    where: { id: (_a = images[0]) === null || _a === void 0 ? void 0 : _a.filterId },
+                                                                    where: { id: ((_a = images[0]) === null || _a === void 0 ? void 0 : _a.filterId) || null },
                                                                 })];
                                                         case 2:
                                                             filter = _b.sent();
-                                                            console.log(filter, "filter101");
+                                                            (0, logger_1.accessLog)("filter", filter);
                                                             return [4 /*yield*/, Post_likes.findAll({
                                                                     where: { postId: post.id },
                                                                 })];
@@ -240,8 +268,7 @@ function getFeed(req, res, next) {
                                                             return [2 /*return*/, {
                                                                     post: __assign(__assign({}, post.dataValues), { likeCount: likeCount.length, likes: likesPost ? true : false }),
                                                                     images: images.map(function (image) {
-                                                                        image.filter = filter === null || filter === void 0 ? void 0 : filter.filterName;
-                                                                        return image;
+                                                                        return __assign(__assign({}, image.dataValues), { filter: filter === null || filter === void 0 ? void 0 : filter.filterName });
                                                                     }),
                                                                     user: __assign({}, userDetails),
                                                                 }];

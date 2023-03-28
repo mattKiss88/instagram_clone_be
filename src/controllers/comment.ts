@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
 import { uploadFile, getFileStream } from "../helpers/s3";
-import { UserRequest } from "./post";
 const { Op } = require("sequelize");
 
 const {
@@ -14,13 +13,13 @@ const {
 } = require("../../models");
 require("dotenv").config();
 
-async function addComment(req: UserRequest, res: Response, next: NextFunction) {
+async function addComment(req: Request, res: Response, next: NextFunction) {
   try {
     const { post_id } = req.params;
 
     const { comment, commentRepliedToId } = req.body;
 
-    const user_id = req.user.user.id;
+    const user_id = req?.user?.id;
 
     let post = await Comment.create({
       createdByUserId: user_id,
@@ -39,13 +38,13 @@ async function addComment(req: UserRequest, res: Response, next: NextFunction) {
 }
 
 async function getCommentsByPostId(
-  req: UserRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
     const { post_id } = req.params;
-    const user_id = req.user.user.id;
+    const user_id = req?.user?.id;
 
     let comments = await Comment.findAll({
       where: {
@@ -138,12 +137,12 @@ async function getCommentsByPostId(
 }
 
 async function toggleCommentLike(
-  req: UserRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
   const { commentId } = req.body;
-  const userId = req.user.user.id;
+  const userId = req?.user?.id;
 
   const liked = await Comment_likes.findOne({
     where: { commentId, userId },

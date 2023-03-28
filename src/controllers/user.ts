@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
+const { Op } = require("sequelize");
 
 const { Post, User, Profile_picture, Follower } = require("../../models");
 require("dotenv").config();
 
-async function getUser(req: any, res: Response, next: NextFunction) {
+async function getUser(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
 
@@ -20,7 +21,7 @@ async function getUser(req: any, res: Response, next: NextFunction) {
 
     const isFollowing = await Follower.findOne({
       where: {
-        followerUserId: req.user.user.id,
+        followerUserId: req?.user?.id,
         followingUserId: id,
       },
     });
@@ -37,9 +38,9 @@ async function getUser(req: any, res: Response, next: NextFunction) {
   }
 }
 
-async function followUser(req: any, res: Response, next: NextFunction) {
+async function followUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const userObj = req.user.user;
+    const userObj = req?.user;
 
     // check if user is already following
 
@@ -64,7 +65,7 @@ async function followUser(req: any, res: Response, next: NextFunction) {
     }
 
     const follow = await Follower.create({
-      followerUserId: userObj.id,
+      followerUserId: userObj?.id,
       followingUserId: req.body.userId,
       createdAt: new Date(),
     });
@@ -76,4 +77,31 @@ async function followUser(req: any, res: Response, next: NextFunction) {
   }
 }
 
-export { getUser, followUser };
+async function searchUser(req: Request, res: Response, next: NextFunction) {
+  const { search } = req.query;
+
+  search?.length === 0 && res.status(201).send([]);
+  try {
+    // return all users
+    // const filterUsers = User.findAll({
+    //   // where : {
+    //   //   username:
+    //   // }
+    // });
+
+    const filterUsers = await User.findAll({
+      where: {
+        username: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+    });
+
+    res.status(201).send(filterUsers);
+  } catch (error) {
+    console.log(error);
+
+    res.status(400).send(error);
+  }
+}
+export { getUser, followUser, searchUser };

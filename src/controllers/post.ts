@@ -29,8 +29,6 @@ async function createPost(req: any, res: Response, next: NextFunction) {
       userId: req.user.user.id,
     });
 
-    console.log("name", req.body);
-
     // find filter by name
     const filter = await Filter.findOne({
       where: { filterName: req.body.filter },
@@ -75,7 +73,8 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
         const filter = await Filter.findOne({
           where: { id: images[0]?.filterId || null },
         });
-        if (images[0]) images[0].filter = filter?.filterName || null;
+
+        accessLog("filter000000", { filter, images });
 
         // get comment count
 
@@ -89,9 +88,15 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
           where: { postId: post.id },
         });
 
-        accessLog("filter", filter);
-
-        return { post: { ...post, commentCount, likeCount }, images };
+        return {
+          post: { ...post.dataValues, commentCount, likeCount },
+          images: images.map((image: any) => {
+            return {
+              ...image.dataValues,
+              filter: filter?.filterName || null,
+            };
+          }),
+        };
       })
     );
 
@@ -142,10 +147,10 @@ async function getImage(req: any, res: Response, next: NextFunction) {
   }
 }
 
-export interface UserRequest extends Request {
-  user?: any;
-}
-async function getFeed(req: UserRequest, res: Response, next: NextFunction) {
+// export interface UserRequest extends Request {
+//   user?: any;
+// }
+async function getFeed(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     const following = await Follower.findAll({
@@ -216,7 +221,7 @@ async function getFeed(req: UserRequest, res: Response, next: NextFunction) {
     //   feed: feedArr,
     // });
   } catch (error) {
-    console.log(error, "-------------------------wakanda forever");
+    console.log(error, "-------------------------get feed error");
     res.status(400).send(error);
   }
 }
@@ -301,7 +306,7 @@ async function getLikes(req: Request, res: Response, next: NextFunction) {
 // protected
 
 async function getRecommendedFriends(
-  req: UserRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
@@ -314,7 +319,7 @@ async function getRecommendedFriends(
         id: {
           [Op.notIn]: [
             Sequelize.literal(
-              `(SELECT followingUserId FROM followers WHERE followerUserId = ${req?.user?.user?.id})`
+              `(SELECT followingUserId FROM followers WHERE followerUserId = ${req?.user?.id})`
             ),
           ],
         },

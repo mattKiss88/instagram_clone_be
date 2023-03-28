@@ -53,11 +53,11 @@ var _a = require("../../models"), Post = _a.Post, User = _a.User, Profile_pictur
 require("dotenv").config();
 function getUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var id, user, userDetails, error_1;
+        var id, user, userDetails, isFollowing, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
+                    _a.trys.push([0, 4, , 5]);
                     id = req.params.id;
                     return [4 /*yield*/, User.findOne({
                             where: { id: id },
@@ -69,29 +69,37 @@ function getUser(req, res, next) {
                     return [4 /*yield*/, (0, getUserPostsAndStats_1.getUserDetails)(user.id)];
                 case 2:
                     userDetails = _a.sent();
-                    res.status(201).send({
-                        user: __assign({}, userDetails),
-                    });
-                    return [3 /*break*/, 4];
+                    return [4 /*yield*/, Follower.findOne({
+                            where: {
+                                followerUserId: req.user.user.id,
+                                followingUserId: id,
+                            },
+                        })];
                 case 3:
+                    isFollowing = _a.sent();
+                    res.status(201).send({
+                        user: __assign(__assign({}, userDetails), { isFollowing: !!isFollowing }),
+                    });
+                    return [3 /*break*/, 5];
+                case 4:
                     error_1 = _a.sent();
                     console.log(error_1);
                     res.status(400).send(error_1);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     });
 }
 exports.getUser = getUser;
 function followUser(req, res, next) {
-    var _a;
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function () {
         var userObj, following, follow, error_2;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
-                    _b.trys.push([0, 3, , 4]);
+                    _c.trys.push([0, 5, , 6]);
                     userObj = req.user.user;
                     return [4 /*yield*/, Follower.findOne({
                             where: {
@@ -100,25 +108,34 @@ function followUser(req, res, next) {
                             },
                         })];
                 case 1:
-                    following = _b.sent();
-                    if (following) {
-                        return [2 /*return*/, res.status(400).send("You are already following this user")];
-                    }
-                    return [4 /*yield*/, Follower.create({
-                            followerUserId: userObj.id,
-                            followingUserId: req.body.userId,
-                            createdAt: new Date(),
+                    following = _c.sent();
+                    if (!following) return [3 /*break*/, 3];
+                    // return res.status(400).send("You are already following this user");
+                    return [4 /*yield*/, Follower.destroy({
+                            where: {
+                                followerUserId: userObj === null || userObj === void 0 ? void 0 : userObj.id,
+                                followingUserId: (_b = req.body) === null || _b === void 0 ? void 0 : _b.userId,
+                            },
                         })];
                 case 2:
-                    follow = _b.sent();
+                    // return res.status(400).send("You are already following this user");
+                    _c.sent();
+                    return [2 /*return*/, res.status(201).send("Unfollowed")];
+                case 3: return [4 /*yield*/, Follower.create({
+                        followerUserId: userObj.id,
+                        followingUserId: req.body.userId,
+                        createdAt: new Date(),
+                    })];
+                case 4:
+                    follow = _c.sent();
                     res.status(201).send({ follow: follow });
-                    return [3 /*break*/, 4];
-                case 3:
-                    error_2 = _b.sent();
+                    return [3 /*break*/, 6];
+                case 5:
+                    error_2 = _c.sent();
                     console.log(error_2);
                     res.status(400).send(error_2);
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 6];
+                case 6: return [2 /*return*/];
             }
         });
     });

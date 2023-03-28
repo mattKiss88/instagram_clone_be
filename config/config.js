@@ -8,6 +8,7 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "mysql",
     port: process.env.DB_PORT,
+    set_charset: "utf8mb4",
   },
   staging: {
     username: process.env.DB_USERNAME,
@@ -16,6 +17,7 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "mysql",
     port: process.env.DB_PORT,
+    set_charset: "utf8mb4",
   },
   production: {
     username: process.env.DB_USERNAME,
@@ -24,5 +26,6 @@ module.exports = {
     host: "127.0.0.1",
     dialect: "mysql",
     port: process.env.DB_PORT,
+    set_charset: "utf8mb4",
   },
 };

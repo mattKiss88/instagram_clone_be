@@ -26,6 +26,7 @@ module.exports = {
       comment: {
         type: Sequelize.STRING(600),
         required: true,
+        collate: "utf8mb4_unicode_ci",
       },
       commentRepliedToId: {
         type: Sequelize.INTEGER,

@@ -8,5 +8,5 @@ var router = (0, express_1.Router)();
 exports.userRouter = router;
 var multer = require("multer");
 var upload = multer({ dest: "uploads/" });
-router.get("/:id", user_1.getUser);
+router.get("/:id", auth_1.authenticateToken, user_1.getUser);
 router.post("/follow", auth_1.authenticateToken, user_1.followUser);
