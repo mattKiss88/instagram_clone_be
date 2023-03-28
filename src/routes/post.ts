@@ -12,7 +12,7 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 import { authenticateToken as auth } from "../middleware/auth";
 
-router.post("/", auth, upload.single("image"), createPost);
+router.post("/", auth, upload.single("image"), createPost as any);
 router.get("/recommended", auth, getRecommendedFriends);
 router.get("/:id", auth, getAllPosts);
 router.get("/image/:key", auth, getImage);

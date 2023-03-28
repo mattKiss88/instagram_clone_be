@@ -10,12 +10,12 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
 
     let user = await User.findOne({
+      attributes: { exclude: ["password"] },
+      raw: true,
       where: { id },
     });
 
-    user = user.dataValues;
-
-    delete user.password;
+    // user = user.dataValues;
 
     let userDetails = await getUserDetails(user.id);
 
@@ -32,7 +32,7 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
         isFollowing: !!isFollowing,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
@@ -71,7 +71,7 @@ async function followUser(req: Request, res: Response, next: NextFunction) {
     });
 
     res.status(201).send({ follow });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
@@ -98,7 +98,7 @@ async function searchUser(req: Request, res: Response, next: NextFunction) {
     });
 
     res.status(201).send(filterUsers);
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
 
     res.status(400).send(error);

@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
 import { uploadFile, getFileStream } from "../helpers/s3";
+import { IComment } from "./types";
 const { Op } = require("sequelize");
-
+// typescript ignore subsequent lines
 const {
   Comment,
-  User,
-  Profile_picture,
+
   Comment_likes,
   Post,
   Post_media,
@@ -19,7 +19,7 @@ async function addComment(req: Request, res: Response, next: NextFunction) {
 
     const { comment, commentRepliedToId } = req.body;
 
-    const user_id = req?.user?.id;
+    const user_id: number = req?.user?.id;
 
     let post = await Comment.create({
       createdByUserId: user_id,
@@ -31,7 +31,7 @@ async function addComment(req: Request, res: Response, next: NextFunction) {
     res.status(201).send({
       ...post.dataValues,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
@@ -44,7 +44,7 @@ async function getCommentsByPostId(
 ) {
   try {
     const { post_id } = req.params;
-    const user_id = req?.user?.id;
+    const user_id: number = req?.user?.id;
 
     let comments = await Comment.findAll({
       where: {
@@ -65,8 +65,8 @@ async function getCommentsByPostId(
     });
 
     comments = await Promise.all(
-      comments.map(async (comment: any) => {
-        const likeCount = await Comment_likes.count({
+      comments.map(async (comment: IComment) => {
+        const likeCount: number = await Comment_likes.count({
           where: { commentId: comment.id },
         });
 
@@ -79,23 +79,25 @@ async function getCommentsByPostId(
         const subComments = await Promise.all(
           totalSubComments
             .filter(
-              (subComment: any) => subComment.commentRepliedToId === comment.id
+              (subComment: IComment) =>
+                subComment.commentRepliedToId === comment.id
             )
-            .map(async (subComment: any) => {
+            .map(async (subComment: IComment) => {
               const subCommentUserDetails = await getUserDetails(
                 subComment.createdByUserId
               );
 
               const subCommentLiked = await Comment_likes.findOne({
+                raw: true,
                 where: { commentId: subComment.id, userId: user_id },
               });
 
-              const subCommentTotalLikes = await Comment_likes.count({
+              const subCommentTotalLikes: number = await Comment_likes.count({
                 where: { commentId: subComment.id },
               });
 
               return {
-                ...subComment.dataValues,
+                ...subComment,
                 liked: subCommentLiked === null ? false : true,
                 likeCount: subCommentTotalLikes,
                 user: {
@@ -106,7 +108,7 @@ async function getCommentsByPostId(
         );
 
         return {
-          ...comment.dataValues,
+          ...comment,
           likeCount,
           liked: liked === null ? false : true,
           subCommentCount: subComments?.length,
@@ -120,14 +122,14 @@ async function getCommentsByPostId(
 
     //  order comments by date
 
-    comments.sort((a: any, b: any) => {
+    comments.sort((a: IComment, b: IComment) => {
       return (new Date(b.createdAt) as any) - (new Date(a?.createdAt) as any);
     });
 
     res.status(200).send({
       comments,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(
       error,
       "******************************* GET COMMENTS ERROR **********************************"
@@ -142,7 +144,7 @@ async function toggleCommentLike(
   next: NextFunction
 ) {
   const { commentId } = req.body;
-  const userId = req?.user?.id;
+  const userId: number = req?.user?.id;
 
   const liked = await Comment_likes.findOne({
     where: { commentId, userId },
@@ -157,7 +159,7 @@ async function toggleCommentLike(
       userId,
     });
   }
-  const likeCount = await Comment_likes.count({
+  const likeCount: number = await Comment_likes.count({
     where: { commentId },
   });
   res.status(200).send({ likeCount });

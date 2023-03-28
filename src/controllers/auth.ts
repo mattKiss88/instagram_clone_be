@@ -8,6 +8,7 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const unlinkFile = util.promisify(fs.unlink);
 import moment from "moment";
+import { File } from "./types";
 
 async function getUser(req: Request, res: Response, next: NextFunction) {
   try {
@@ -21,7 +22,10 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     if (!validPassword) throw new Error("Invalid password");
 
-    const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
+    const accessToken: string | object = jwt.sign(
+      { user },
+      process.env.ACCESS_TOKEN_SECRET
+    );
 
     res.send({ accessToken, user });
 
@@ -33,8 +37,7 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
     // })
 
     // res.status(200).send({ success: true });
-  } catch (err: any) {
-    console.log(err?.message, "-------------------->");
+  } catch (err: unknown) {
     return res
       .status(400)
       .send(
@@ -43,13 +46,17 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-async function createUser(req: any, res: Response, next: NextFunction) {
+interface FileRequest extends Request {
+  file?: File;
+}
+
+async function createUser(req: FileRequest, res: Response, next: NextFunction) {
   try {
     const { email, password, username, fullName, dob, bio } = req.body.userData;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword: string = await bcrypt.hash(password, 10);
 
-    const file = req?.file;
+    const file: File | undefined = req?.file;
 
     let user = await User.create({
       email,
@@ -84,11 +91,14 @@ async function createUser(req: any, res: Response, next: NextFunction) {
       });
     }
 
-    const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET);
+    const accessToken: string | object = jwt.sign(
+      { user },
+      process.env.ACCESS_TOKEN_SECRET
+    );
 
     res.status(200).send({ user, token: accessToken });
     console.log("great success");
-  } catch (err) {
+  } catch (err: unknown) {
     console.log(err);
     return res.status(400).send("Invalid email or password");
   }

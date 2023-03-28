@@ -1,4 +1,5 @@
 import S3 from "aws-sdk/clients/s3";
+import { File } from "../controllers/types";
 require("dotenv").config();
 const bucketName = process.env.BUCKET_NAME;
 const region = process.env.AWS_REGION;
@@ -13,15 +14,21 @@ const s3 = new S3({
   secretAccessKey,
 });
 
+interface IParams {
+  Bucket: string;
+  Key: string;
+  Body: any;
+}
+
 // upload file to s3
 
-export const uploadFile = (file: any) => {
+export const uploadFile = (file: File) => {
   const fileStream = fs.createReadStream(file.path);
 
-  const uploadParams: any = {
-    Bucket: bucketName,
+  const uploadParams: IParams = {
+    Bucket: bucketName as string,
     Body: fileStream,
-    Key: file.filename,
+    Key: file.filename as string,
   };
 
   return s3.upload(uploadParams).promise();
@@ -29,12 +36,6 @@ export const uploadFile = (file: any) => {
 // download a file from s3
 
 export const getFileStream = (fileKey: string) => {
-  console.log("fileKey", fileKey);
-
-  console.log("bucketName", bucketName);
-  console.log("region", region);
-  console.log("accessKeyId", accessKeyId);
-  console.log("secretAccessKey", secretAccessKey);
   const downloadParams: { Key: string; Bucket: string } = {
     Key: fileKey,
     Bucket: bucketName || "",

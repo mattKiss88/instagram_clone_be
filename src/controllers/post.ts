@@ -5,6 +5,7 @@ import util from "util";
 import { Op, Sequelize } from "sequelize";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
 import { accessLog } from "../helpers/logger";
+import { File, IPost, IPost_media, IUser } from "./types";
 const {
   Post,
   Post_media,
@@ -18,15 +19,19 @@ const {
 require("dotenv").config();
 const unlinkFile = util.promisify(fs.unlink);
 
-async function createPost(req: any, res: Response, next: NextFunction) {
+interface FileRequest extends Request {
+  file: File;
+}
+
+async function createPost(req: FileRequest, res: Response, next: NextFunction) {
   try {
-    const file = req.file;
+    const file: File = req.file;
 
     await uploadFile(file);
 
     const post = await Post.create({
       caption: req.body.caption,
-      userId: req.user.user.id,
+      userId: req.user.id,
     });
 
     // find filter by name
@@ -44,27 +49,27 @@ async function createPost(req: any, res: Response, next: NextFunction) {
     await unlinkFile(file.path);
 
     res.status(201).send({ post, image });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
 }
 
-async function getAllPosts(req: any, res: Response, next: NextFunction) {
+async function getAllPosts(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
 
     !id && res.status(400).send("id is required");
 
-    console.log("get all posts ------------------->,", id);
-
     const posts = await Post.findAll({
+      raw: true,
       where: { userId: id },
     });
 
     const postArr = await Promise.all(
-      posts.map(async (post: any) => {
-        const images = await Post_media.findAll({
+      posts.map(async (post: IPost) => {
+        const images: IPost_media[] = await Post_media.findAll({
+          raw: true,
           where: { postId: post.id },
         });
 
@@ -74,25 +79,25 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
           where: { id: images[0]?.filterId || null },
         });
 
-        accessLog("filter000000", { filter, images });
+        accessLog("filter", { filter, images });
 
         // get comment count
 
-        const commentCount = await Comment.count({
+        const commentCount: number = await Comment.count({
           where: { postId: post.id },
         });
 
         // get like count
 
-        const likeCount = await Post_likes.count({
+        const likeCount: number = await Post_likes.count({
           where: { postId: post.id },
         });
 
         return {
-          post: { ...post.dataValues, commentCount, likeCount },
-          images: images.map((image: any) => {
+          post: { ...post, commentCount, likeCount },
+          images: images.map((image: IPost_media) => {
             return {
-              ...image.dataValues,
+              ...image,
               filter: filter?.filterName || null,
             };
           }),
@@ -100,14 +105,13 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
       })
     );
 
-    const user = await User.findOne({
+    const user: IUser = await User.findOne({
+      attributes: { exclude: ["password"] },
       where: { id },
       raw: true,
     });
 
     console.log("--------------------->user", user);
-
-    delete user.password;
 
     const profilePic = await Profile_picture.findOne({
       where: { userId: id },
@@ -116,7 +120,7 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
     const following = await Follower.findOne({
       where: {
         followerUserId: id,
-        followingUserId: req.user.user.id,
+        followingUserId: req.user.id,
       },
     });
 
@@ -128,13 +132,13 @@ async function getAllPosts(req: any, res: Response, next: NextFunction) {
         following: !!following,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
 }
 
-async function getImage(req: any, res: Response, next: NextFunction) {
+async function getImage(req: Request, res: Response, next: NextFunction) {
   try {
     const { key } = req.params;
 
@@ -234,16 +238,16 @@ async function toggleLike(req: Request, res: Response, next: NextFunction) {
       where: { postId, userId },
     });
 
-    let data;
+    let likeAction;
 
     if (like) {
-      data = await unlikePost(postId, userId);
+      likeAction = await unlikePost(postId, userId);
     } else {
-      data = await likePost(postId, userId);
+      likeAction = await likePost(postId, userId);
     }
 
-    res.status(201).send({ data });
-  } catch (error) {
+    res.status(201).send({ data: likeAction });
+  } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
@@ -257,7 +261,7 @@ async function likePost(postId: number, userId: number) {
     });
 
     return like;
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
   }
 }
@@ -269,7 +273,7 @@ async function unlikePost(postId: number, userId: number) {
     });
 
     return like;
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(error);
   }
 }
@@ -310,8 +314,6 @@ async function getRecommendedFriends(
   res: Response,
   next: NextFunction
 ) {
-  console.log("get recommended friends ------------------->", req?.user);
-
   try {
     const usersNotFollowing = await User.findAll({
       attributes: { exclude: ["password"] },
@@ -328,7 +330,7 @@ async function getRecommendedFriends(
     });
 
     const usersNotFollowingDetails = await Promise.all(
-      usersNotFollowing.map(async (user: any) => {
+      usersNotFollowing.map(async (user: IUser) => {
         const userDetails = await getUserDetails(user.id);
 
         return { ...userDetails };
@@ -336,7 +338,7 @@ async function getRecommendedFriends(
     );
 
     res.status(200).send({ users: usersNotFollowingDetails });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(400).send({ error: "Error getting recommended friends" });
     console.log(
       "ERROR getting recommended friends *******************************************"
