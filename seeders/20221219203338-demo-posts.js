@@ -1,85 +1,27 @@
 "use strict";
 
-const { randLine } = require("@ngneat/falso");
+const { randTextRange } = require("@ngneat/falso");
 
 /** @type {import('sequelize-cli').Migration} */
+
+const posts = [];
+
+for (let i = 0; i < 400; i++) {
+  const userId = Math.floor(Math.random() * 100) + 1;
+  posts.push({
+    userId: userId,
+    caption: randTextRange({ min: 10, max: 100 }),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    return queryInterface.bulkInsert("Posts", [
-      {
-        userId: 1,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 1,
-        caption:
-          "lorum ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quod jana leto gerado sequil renugna",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 2,
-        caption: randLine({ lineCount: 2 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 2,
-        caption: randLine({ lineCount: 3 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 3,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 3,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 4,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 4,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 5,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-
-      {
-        userId: 5,
-        caption: randLine({ lineCount: 1 }),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
+    return queryInterface.bulkInsert("Posts", posts);
   },
 
   async down(queryInterface, Sequelize) {
-    return queryInterface.bulkDelete("Users", null, {});
+    return queryInterface.bulkDelete("Posts", null, {});
   },
 };

@@ -47,3 +47,30 @@ export const getFileStream = (fileKey: string) => {
 
   return s3.getObject(downloadParams).createReadStream();
 };
+
+export const getS3Objects = async (): Promise<string[]> => {
+  // const s3 = new AWS.S3();
+  const objectNames: string[] = [];
+  let isTruncated = true;
+  let continuationToken: string | undefined;
+
+  while (isTruncated) {
+    const response = await s3
+      .listObjectsV2({
+        Bucket: bucketName as string,
+        ContinuationToken: continuationToken,
+      })
+      .promise();
+
+    response.Contents?.forEach((obj) => {
+      if (obj.Key) {
+        objectNames.push(obj.Key);
+      }
+    });
+
+    isTruncated = !!response.IsTruncated;
+    continuationToken = response.NextContinuationToken;
+  }
+
+  return objectNames;
+};

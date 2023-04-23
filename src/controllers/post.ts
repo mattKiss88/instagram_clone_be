@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { uploadFile, getFileStream } from "../helpers/s3";
-import fs from "fs";
+import fs, { access } from "fs";
 import util from "util";
 import { Op, Sequelize } from "sequelize";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
@@ -23,7 +23,7 @@ interface FileRequest extends Request {
   file: File;
 }
 
-async function createPost(req: FileRequest, res: Response, next: NextFunction) {
+async function createPost(req: FileRequest, res: Response) {
   try {
     const file: File = req.file;
 
@@ -46,16 +46,22 @@ async function createPost(req: FileRequest, res: Response, next: NextFunction) {
       filterId: filter?.id || null,
     });
 
+    const user = await getUserDetails(req.user.id);
+
     await unlinkFile(file.path);
 
-    res.status(201).send({ post, image });
+    res.status(201).send({
+      post: { ...post.dataValues, isLiked: false, likeCount: 0 },
+      images: [image],
+      user,
+    });
   } catch (error: unknown) {
     console.log(error);
     res.status(400).send(error);
   }
 }
 
-async function getAllPosts(req: Request, res: Response, next: NextFunction) {
+async function getAllPosts(req: Request, res: Response) {
   try {
     const { id } = req.params;
 
@@ -79,8 +85,6 @@ async function getAllPosts(req: Request, res: Response, next: NextFunction) {
           where: { id: images[0]?.filterId || null },
         });
 
-        accessLog("filter", { filter, images });
-
         // get comment count
 
         const commentCount: number = await Comment.count({
@@ -93,8 +97,17 @@ async function getAllPosts(req: Request, res: Response, next: NextFunction) {
           where: { postId: post.id },
         });
 
+        // LOGGED IN USER LIKES
+
+        const isLiked = await Post_likes.findOne({
+          where: {
+            postId: post.id,
+            userId: req.user.id,
+          },
+        });
+
         return {
-          post: { ...post, commentCount, likeCount },
+          post: { ...post, commentCount, likeCount, isLiked: !!isLiked },
           images: images.map((image: IPost_media) => {
             return {
               ...image,
@@ -110,8 +123,6 @@ async function getAllPosts(req: Request, res: Response, next: NextFunction) {
       where: { id },
       raw: true,
     });
-
-    console.log("--------------------->user", user);
 
     const profilePic = await Profile_picture.findOne({
       where: { userId: id },
@@ -138,7 +149,7 @@ async function getAllPosts(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-async function getImage(req: Request, res: Response, next: NextFunction) {
+async function getImage(req: Request, res: Response) {
   try {
     const { key } = req.params;
 
@@ -151,86 +162,61 @@ async function getImage(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// export interface UserRequest extends Request {
-//   user?: any;
-// }
-async function getFeed(req: Request, res: Response, next: NextFunction) {
+async function getFeed(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const following = await Follower.findAll({
-      where: { followerUserId: id },
+    const { page = 1, limit = 10 } = req.query;
+
+    const following = await Follower.findAll({ where: { followerUserId: id } });
+    const followingUserIds = following.map((user: any) => user.followingUserId);
+    // add current user id to get his posts
+    followingUserIds.push(id);
+
+    const allPosts = await Post.findAll({
+      raw: true,
+      where: { userId: { [Op.in]: followingUserIds } },
+      order: [["createdAt", "DESC"]],
     });
 
+    const startIndex = ((page as number) - 1) * (limit as number);
+    const endIndex = startIndex + parseInt(limit as string, 10);
+
+    const paginatedPosts = allPosts.slice(startIndex, endIndex);
+
     const feedArr = await Promise.all(
-      following.map(async (user: any) => {
-        const posts = await Post.findAll({
-          where: { userId: user?.followingUserId },
+      paginatedPosts.map(async (post: any) => {
+        const [images, likeCount, likesPost, userDetails] = await Promise.all([
+          Post_media.findAll({ raw: true, where: { postId: post.id } }),
+          Post_likes.count({ where: { postId: post.id } }),
+          Post_likes.findOne({ where: { postId: post.id, userId: id } }),
+          getUserDetails(post.userId),
+        ]);
+
+        const filter = await Filter.findOne({
+          where: { id: images[0]?.filterId || null },
         });
 
-        const postArr = await Promise.all(
-          posts.map(async (post: any) => {
-            const images = await Post_media.findAll({
-              where: { postId: post.id },
-            });
+        accessLog("filter", filter);
 
-            // get image filter
-            const filter = await Filter.findOne({
-              where: { id: images[0]?.filterId || null },
-            });
-
-            accessLog("filter", filter);
-
-            const likeCount = await Post_likes.findAll({
-              where: { postId: post.id },
-            });
-
-            const likesPost = await Post_likes.findOne({
-              where: { postId: post.id, userId: id },
-            });
-
-            const userDetails = await getUserDetails(post?.userId);
-
-            return {
-              post: {
-                ...post.dataValues,
-                likeCount: likeCount.length,
-                likes: likesPost ? true : false,
-              },
-              images: images.map((image: any) => {
-                return {
-                  ...image.dataValues,
-                  filter: filter?.filterName,
-                };
-              }),
-              user: {
-                ...userDetails,
-              },
-            };
-          })
-        );
-
-        return postArr;
+        return {
+          post: { ...post, likeCount, isLiked: !!likesPost },
+          images: images.map((image: any) => ({
+            ...image,
+            filter: filter?.filterName,
+          })),
+          user: userDetails,
+        };
       })
-    )
-      .then((array) => {
-        return array
-          .flat(1)
-          .sort((a: any, b: any) => a.post.createdAt - b.post.createdAt);
-      })
-      .catch((err) => console.log(err));
+    );
 
-    res.cookie("name", "express").send({ feed: feedArr }); //Sets name = express
-
-    // res.status(201).send({
-    //   feed: feedArr,
-    // });
+    res.cookie("name", "express").send({ feed: feedArr });
   } catch (error) {
     console.log(error, "-------------------------get feed error");
     res.status(400).send(error);
   }
 }
 
-async function toggleLike(req: Request, res: Response, next: NextFunction) {
+async function toggleLike(req: Request, res: Response) {
   try {
     const { postId, userId } = req.body;
 
@@ -278,45 +264,9 @@ async function unlikePost(postId: number, userId: number) {
   }
 }
 
-async function getLikes(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { postId } = req.params;
-
-    const likes = await Post_likes.findAll({
-      where: { postId },
-    });
-
-    // const likesArr = await Promise.all(
-    //   likes.map(async (like: any) => {
-    //     const user = await User.findOne({
-    //       where: { id: like.userId },
-    //     });
-
-    //     const profilePic = await Profile_picture.findOne({
-    //       where: { userId: like.userId },
-    //     });
-
-    //     return { ...user.dataValues, avatar: profilePic.mediaFileId };
-    //   })
-    // );
-
-    return likes.length;
-  } catch (error) {
-    console.log(error);
-    res.status(400).send(error);
-  }
-}
-
-// protected
-
-async function getRecommendedFriends(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+async function getRecommendedFriends(req: Request, res: Response) {
   try {
     const usersNotFollowing = await User.findAll({
-      attributes: { exclude: ["password"] },
       where: {
         id: {
           [Op.notIn]: [
@@ -324,6 +274,7 @@ async function getRecommendedFriends(
               `(SELECT followingUserId FROM followers WHERE followerUserId = ${req?.user?.id})`
             ),
           ],
+          [Op.ne]: req?.user?.id,
         },
       },
       limit: 7,
@@ -340,9 +291,36 @@ async function getRecommendedFriends(
     res.status(200).send({ users: usersNotFollowingDetails });
   } catch (error: unknown) {
     res.status(400).send({ error: "Error getting recommended friends" });
-    console.log(
-      "ERROR getting recommended friends *******************************************"
-    );
+    accessLog(`GET Recommended Friends Error`, error);
+  }
+}
+
+async function deletePost(req: Request, res: Response) {
+  try {
+    const { postId } = req.params;
+
+    accessLog(`DELETE Post Error`, postId);
+
+    const post = await Post.findOne({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(400).send({ error: "Post not found" });
+    }
+
+    if (post.userId !== req?.user?.id) {
+      return res.status(400).send({ error: "Unauthorized" });
+    }
+
+    const deletedPost = await Post.destroy({
+      where: { id: postId },
+    });
+
+    res.status(200).send({ data: deletedPost });
+  } catch (error: unknown) {
+    res.status(400).send({ error: "Error deleting post" });
+    accessLog(`DELETE Post Error`, error);
   }
 }
 
@@ -353,4 +331,5 @@ export {
   getFeed,
   toggleLike,
   getRecommendedFriends,
+  deletePost,
 };

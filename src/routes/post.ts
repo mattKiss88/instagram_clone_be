@@ -6,6 +6,7 @@ import {
   getFeed,
   toggleLike,
   getRecommendedFriends,
+  deletePost,
 } from "../controllers/post";
 const router = Router();
 const multer = require("multer");
@@ -18,5 +19,6 @@ router.get("/:id", auth, getAllPosts);
 router.get("/image/:key", auth, getImage);
 router.get("/feed/:id", auth, getFeed);
 router.post("/like", auth, toggleLike);
+router.delete("/:postId", auth, deletePost);
 
 export { router as postRouter };

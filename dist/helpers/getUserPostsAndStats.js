@@ -48,7 +48,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserDetails = void 0;
-var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes, Comment = _a.Comment;
+var _a = require("../../models"), Post = _a.Post, Post_media = _a.Post_media, User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower, Post_likes = _a.Post_likes, Comment = _a.Comment, Filter = _a.Filter;
 var getUserDetails = function (userId) { return __awaiter(void 0, void 0, void 0, function () {
     var user, profilePic, userPostList, userPostListWithImg, followers, following, err_1;
     return __generator(this, function (_a) {
@@ -56,11 +56,11 @@ var getUserDetails = function (userId) { return __awaiter(void 0, void 0, void 0
             case 0:
                 _a.trys.push([0, 7, , 8]);
                 return [4 /*yield*/, User.findOne({
+                        attributes: { exclude: ["password"] },
                         where: { id: userId },
                     })];
             case 1:
                 user = _a.sent();
-                delete user.dataValues.password;
                 return [4 /*yield*/, Profile_picture.findOne({
                         where: { userId: userId },
                     })];
@@ -72,27 +72,37 @@ var getUserDetails = function (userId) { return __awaiter(void 0, void 0, void 0
             case 3:
                 userPostList = _a.sent();
                 return [4 /*yield*/, Promise.all(userPostList.map(function (post) { return __awaiter(void 0, void 0, void 0, function () {
-                        var images, likes, comments;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
+                        var images, filter, likes, comments;
+                        var _a;
+                        return __generator(this, function (_b) {
+                            switch (_b.label) {
                                 case 0: return [4 /*yield*/, Post_media.findAll({
                                         where: { postId: post.id },
                                     })];
                                 case 1:
-                                    images = _a.sent();
+                                    images = _b.sent();
+                                    return [4 /*yield*/, Filter.findOne({
+                                            where: { id: ((_a = images[0]) === null || _a === void 0 ? void 0 : _a.filterId) || null },
+                                        })];
+                                case 2:
+                                    filter = _b.sent();
+                                    if (images[0])
+                                        images[0].filter = (filter === null || filter === void 0 ? void 0 : filter.filterName) || null;
                                     return [4 /*yield*/, Post_likes.findAll({
                                             where: { postId: post.id },
                                         })];
-                                case 2:
-                                    likes = _a.sent();
+                                case 3:
+                                    likes = _b.sent();
                                     return [4 /*yield*/, Comment.findAll({
                                             where: { postId: post.id },
                                         })];
-                                case 3:
-                                    comments = _a.sent();
+                                case 4:
+                                    comments = _b.sent();
                                     return [2 /*return*/, {
                                             post: __assign(__assign({}, post.dataValues), { likeCount: likes === null || likes === void 0 ? void 0 : likes.length, commentCount: comments === null || comments === void 0 ? void 0 : comments.length }),
-                                            images: images,
+                                            images: images.map(function (image) {
+                                                return __assign(__assign({}, image.dataValues), { filter: image.filter || null });
+                                            }),
                                         }];
                             }
                         });

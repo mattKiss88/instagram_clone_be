@@ -8,5 +8,8 @@ var router = (0, express_1.Router)();
 exports.userRouter = router;
 var multer = require("multer");
 var upload = multer({ dest: "uploads/" });
+router.get("/", auth_1.authenticateToken, user_1.searchUser);
+router.get("/friends", auth_1.authenticateToken, user_1.getFriends);
 router.get("/:id", auth_1.authenticateToken, user_1.getUser);
 router.post("/follow", auth_1.authenticateToken, user_1.followUser);
+router.patch("/profile-picture", auth_1.authenticateToken, upload.single("image"), user_1.patchProfileImg);

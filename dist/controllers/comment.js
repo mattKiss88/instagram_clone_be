@@ -50,18 +50,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.toggleCommentLike = exports.getCommentsByPostId = exports.addComment = void 0;
 var getUserPostsAndStats_1 = require("../helpers/getUserPostsAndStats");
 var Op = require("sequelize").Op;
-var _a = require("../../models"), Comment = _a.Comment, User = _a.User, Profile_picture = _a.Profile_picture, Comment_likes = _a.Comment_likes, Post = _a.Post, Post_media = _a.Post_media;
+var _a = require("../../models"), Comment = _a.Comment, Comment_likes = _a.Comment_likes;
 require("dotenv").config();
 function addComment(req, res, next) {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var post_id, _a, comment, commentRepliedToId, user_id, post, error_1;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var post_id, _b, comment, commentRepliedToId, user_id, post, error_1;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
-                    _b.trys.push([0, 2, , 3]);
+                    _c.trys.push([0, 2, , 3]);
                     post_id = req.params.post_id;
-                    _a = req.body, comment = _a.comment, commentRepliedToId = _a.commentRepliedToId;
-                    user_id = req.user.user.id;
+                    _b = req.body, comment = _b.comment, commentRepliedToId = _b.commentRepliedToId;
+                    user_id = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
                     return [4 /*yield*/, Comment.create({
                             createdByUserId: user_id,
                             postId: post_id,
@@ -69,11 +70,13 @@ function addComment(req, res, next) {
                             commentRepliedToId: commentRepliedToId,
                         })];
                 case 1:
-                    post = _b.sent();
+                    post = _c.sent();
+                    // Send success response with created comment data
                     res.status(201).send(__assign({}, post.dataValues));
                     return [3 /*break*/, 3];
                 case 2:
-                    error_1 = _b.sent();
+                    error_1 = _c.sent();
+                    // Catch and handle errors
                     console.log(error_1);
                     res.status(400).send(error_1);
                     return [3 /*break*/, 3];
@@ -84,36 +87,39 @@ function addComment(req, res, next) {
 }
 exports.addComment = addComment;
 function getCommentsByPostId(req, res, next) {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
         var post_id, user_id_1, comments, totalSubComments_1, error_2;
-        var _a, _b;
+        var _b, _c;
         var _this = this;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        return __generator(this, function (_d) {
+            switch (_d.label) {
                 case 0:
-                    _c.trys.push([0, 4, , 5]);
+                    _d.trys.push([0, 4, , 5]);
                     post_id = req.params.post_id;
-                    user_id_1 = req.user.user.id;
+                    user_id_1 = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
                     return [4 /*yield*/, Comment.findAll({
-                            where: {
-                                postId: post_id,
-                                commentRepliedToId: (_a = {},
-                                    _a[Op.is] = null,
-                                    _a),
-                            },
-                        })];
-                case 1:
-                    comments = _c.sent();
-                    return [4 /*yield*/, Comment.findAll({
+                            raw: true,
                             where: {
                                 postId: post_id,
                                 commentRepliedToId: (_b = {},
-                                    _b[Op.not] = null,
+                                    _b[Op.is] = null,
                                     _b),
                             },
                         })];
+                case 1:
+                    comments = _d.sent();
+                    return [4 /*yield*/, Comment.findAll({
+                            raw: true,
+                            where: {
+                                postId: post_id,
+                                commentRepliedToId: (_c = {},
+                                    _c[Op.not] = null,
+                                    _c),
+                            },
+                        })];
                 case 2:
-                    totalSubComments_1 = _c.sent();
+                    totalSubComments_1 = _d.sent();
                     return [4 /*yield*/, Promise.all(comments.map(function (comment) { return __awaiter(_this, void 0, void 0, function () {
                             var likeCount, liked, userDetails, subComments;
                             var _this = this;
@@ -133,7 +139,9 @@ function getCommentsByPostId(req, res, next) {
                                     case 3:
                                         userDetails = _a.sent();
                                         return [4 /*yield*/, Promise.all(totalSubComments_1
-                                                .filter(function (subComment) { return subComment.commentRepliedToId === comment.id; })
+                                                .filter(function (subComment) {
+                                                return subComment.commentRepliedToId === comment.id;
+                                            })
                                                 .map(function (subComment) { return __awaiter(_this, void 0, void 0, function () {
                                                 var subCommentUserDetails, subCommentLiked, subCommentTotalLikes;
                                                 return __generator(this, function (_a) {
@@ -142,6 +150,7 @@ function getCommentsByPostId(req, res, next) {
                                                         case 1:
                                                             subCommentUserDetails = _a.sent();
                                                             return [4 /*yield*/, Comment_likes.findOne({
+                                                                    raw: true,
                                                                     where: { commentId: subComment.id, userId: user_id_1 },
                                                                 })];
                                                         case 2:
@@ -151,28 +160,31 @@ function getCommentsByPostId(req, res, next) {
                                                                 })];
                                                         case 3:
                                                             subCommentTotalLikes = _a.sent();
-                                                            return [2 /*return*/, __assign(__assign({}, subComment.dataValues), { liked: subCommentLiked === null ? false : true, likeCount: subCommentTotalLikes, user: __assign({}, subCommentUserDetails) })];
+                                                            return [2 /*return*/, __assign(__assign({}, subComment), { liked: subCommentLiked === null ? false : true, likeCount: subCommentTotalLikes, user: __assign({}, subCommentUserDetails) })];
                                                     }
                                                 });
                                             }); }))];
                                     case 4:
                                         subComments = _a.sent();
-                                        return [2 /*return*/, __assign(__assign({}, comment.dataValues), { likeCount: likeCount, liked: liked === null ? false : true, subCommentCount: subComments === null || subComments === void 0 ? void 0 : subComments.length, subComments: subComments, user: __assign({}, userDetails) })];
+                                        // Return processed comment with additional details
+                                        return [2 /*return*/, __assign(__assign({}, comment), { likeCount: likeCount, liked: liked === null ? false : true, subCommentCount: subComments === null || subComments === void 0 ? void 0 : subComments.length, subComments: subComments, user: __assign({}, userDetails) })];
                                 }
                             });
                         }); }))];
                 case 3:
-                    comments = _c.sent();
-                    //  order comments by date
+                    // Process each comment to get additional details
+                    comments = _d.sent();
+                    // Sort comments by date in descending order
                     comments.sort(function (a, b) {
                         return new Date(b.createdAt) - new Date(a === null || a === void 0 ? void 0 : a.createdAt);
                     });
+                    // Send success response with processed comments
                     res.status(200).send({
                         comments: comments,
                     });
                     return [3 /*break*/, 5];
                 case 4:
-                    error_2 = _c.sent();
+                    error_2 = _d.sent();
                     console.log(error_2, "******************************* GET COMMENTS ERROR **********************************");
                     res.status(400).send(error_2);
                     return [3 /*break*/, 5];
@@ -182,14 +194,40 @@ function getCommentsByPostId(req, res, next) {
     });
 }
 exports.getCommentsByPostId = getCommentsByPostId;
+// async function toggleCommentLike(
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) {
+//   const { commentId } = req.body;
+//   const userId: number = req?.user?.id;
+//   const liked = await Comment_likes.findOne({
+//     where: { commentId, userId },
+//   });
+//   if (liked) {
+//     await Comment_likes.destroy({
+//       where: { commentId, userId },
+//     });
+//   } else {
+//     await Comment_likes.create({
+//       commentId,
+//       userId,
+//     });
+//   }
+//   const likeCount: number = await Comment_likes.count({
+//     where: { commentId },
+//   });
+//   res.status(200).send({ likeCount });
+// }
 function toggleCommentLike(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var commentId, userId, liked, likeCount;
+        var commentId, userId, liked, likeCount, error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    _a.trys.push([0, 7, , 8]);
                     commentId = req.body.commentId;
-                    userId = req.user.user.id;
+                    userId = req.user.id;
                     return [4 /*yield*/, Comment_likes.findOne({
                             where: { commentId: commentId, userId: userId },
                         })];
@@ -214,8 +252,15 @@ function toggleCommentLike(req, res, next) {
                     })];
                 case 6:
                     likeCount = _a.sent();
+                    // Send a success response with the updated like count
                     res.status(200).send({ likeCount: likeCount });
-                    return [2 /*return*/];
+                    return [3 /*break*/, 8];
+                case 7:
+                    error_3 = _a.sent();
+                    console.log(error_3, "******************************* TOGGLE COMMENT LIKE ERROR **********************************");
+                    res.status(400).send("Error toggling comment like");
+                    return [3 /*break*/, 8];
+                case 8: return [2 /*return*/];
             }
         });
     });

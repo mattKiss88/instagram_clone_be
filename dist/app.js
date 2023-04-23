@@ -9,7 +9,6 @@ var auth_1 = require("./routes/auth");
 var post_1 = require("./routes/post");
 var user_1 = require("./routes/user");
 var comment_1 = require("./routes/comment");
-var _a = require("../models"), Post = _a.Post, Post_media = _a.Post_media;
 var cookieParser = require("cookie-parser");
 var app = (0, express_1.default)();
 var port = 3001;

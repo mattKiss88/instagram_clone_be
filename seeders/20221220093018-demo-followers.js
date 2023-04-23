@@ -2,91 +2,34 @@
 
 /** @type {import('sequelize-cli').Migration} */
 
-/** @type {import('sequelize-cli').Migration} */
+const friendshipArray = [];
+
+function friendshipExists(followingUserId, followerUserId) {
+  return friendshipArray.some(
+    (friendship) =>
+      friendship.followingUserId === followingUserId &&
+      friendship.followerUserId === followerUserId
+  );
+}
+
+for (let i = 1; i < 1000; i++) {
+  const followingUserId = Math.floor(Math.random() * 100) + 1;
+  const followerUserId = Math.floor(Math.random() * 100) + 1;
+
+  if (followingUserId === followerUserId) continue;
+
+  if (!friendshipExists(followingUserId, followerUserId)) {
+    friendshipArray.push({
+      followingUserId: followingUserId,
+      followerUserId: followerUserId,
+      createdAt: new Date(),
+    });
+  }
+}
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    return queryInterface.bulkInsert("Followers", [
-      {
-        followingUserId: 1,
-        followerUserId: 2,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 1,
-        followerUserId: 3,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 1,
-        followerUserId: 4,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 1,
-        followerUserId: 5,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 2,
-        followerUserId: 1,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 2,
-        followerUserId: 3,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 2,
-        followerUserId: 4,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 2,
-        followerUserId: 5,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 3,
-        followerUserId: 1,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 3,
-        followerUserId: 4,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 3,
-        followerUserId: 5,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 4,
-        followerUserId: 1,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 4,
-        followerUserId: 2,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 4,
-        followerUserId: 3,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 5,
-        followerUserId: 1,
-        createdAt: new Date(),
-      },
-      {
-        followingUserId: 5,
-        followerUserId: 2,
-        createdAt: new Date(),
-      },
-    ]);
+    return queryInterface.bulkInsert("Followers", friendshipArray);
   },
 
   async down(queryInterface, Sequelize) {

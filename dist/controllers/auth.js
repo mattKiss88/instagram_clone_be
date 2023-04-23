@@ -54,45 +54,72 @@ exports.createUser = exports.getUser = void 0;
 var s3_1 = require("../helpers/s3");
 var fs_1 = __importDefault(require("fs"));
 var util_1 = __importDefault(require("util"));
+var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 var bcrypt = require("bcrypt");
-var _a = require("../../models"), User = _a.User, Profile_picture = _a.Profile_picture;
+var _a = require("../../models"), User = _a.User, Profile_picture = _a.Profile_picture, Follower = _a.Follower;
 require("dotenv").config();
 var jwt = require("jsonwebtoken");
-var unlinkFile = util_1.default.promisify(fs_1.default.unlink);
 var moment_1 = __importDefault(require("moment"));
+var logger_1 = require("../helpers/logger");
+// Handler function to get user information
 function getUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, email, password, user, validPassword, accessToken, err_1;
+        var _a, email, password, user, followingUsers, validPassword, accessToken, err_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 3, , 4]);
+                    _b.trys.push([0, 4, , 5]);
                     _a = req.body, email = _a.email, password = _a.password;
-                    return [4 /*yield*/, User.findOne({ where: { email: email } })];
+                    return [4 /*yield*/, User.findOne({
+                            where: { email: email },
+                            include: [
+                                {
+                                    model: Profile_picture,
+                                    attributes: ["mediaFileId"],
+                                },
+                            ],
+                        })];
                 case 1:
                     user = _b.sent();
+                    console.log(user.id, "user id");
+                    return [4 /*yield*/, Follower.findAll({
+                            where: {
+                                followerUserId: user.id,
+                            },
+                            attributes: ["followingUserId"],
+                        })];
+                case 2:
+                    followingUsers = _b.sent();
+                    console.log(followingUsers);
+                    followingUsers = followingUsers.map(function (user) { return user.followingUserId; });
+                    // If user not found, throw an error
                     if (!user)
                         throw new Error("User not found");
                     return [4 /*yield*/, bcrypt.compare(password, user.password)];
-                case 2:
+                case 3:
                     validPassword = _b.sent();
+                    // If password is invalid, throw an error
                     if (!validPassword)
                         throw new Error("Invalid password");
                     accessToken = jwt.sign({ user: user }, process.env.ACCESS_TOKEN_SECRET);
-                    res.send({ accessToken: accessToken, user: user });
-                    return [3 /*break*/, 4];
-                case 3:
+                    // Send response with access token and user information
+                    res.send({ accessToken: accessToken, user: user, followingUsers: followingUsers });
+                    return [3 /*break*/, 5];
+                case 4:
                     err_1 = _b.sent();
-                    console.log(err_1 === null || err_1 === void 0 ? void 0 : err_1.message, "-------------------->");
+                    // If error occurs, send error message in response
+                    console.log(err_1);
+                    (0, logger_1.accessLog)("LOGIN USER ERROR", err_1);
                     return [2 /*return*/, res
                             .status(400)
                             .send("Sorry, your password was incorrect. Please double-check your password.")];
-                case 4: return [2 /*return*/];
+                case 5: return [2 /*return*/];
             }
         });
     });
 }
 exports.getUser = getUser;
+// Interface to extend Request type with File property
 function createUser(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
         var _a, email, password, username, fullName, dob, bio, hashedPassword, file, user, accessToken, err_2;
@@ -115,6 +142,7 @@ function createUser(req, res, next) {
                         })];
                 case 2:
                     user = _b.sent();
+                    // Format user data and update profile picture
                     user = __assign(__assign({}, user.dataValues), { dob: (0, moment_1.default)(user.dataValues.dob).format("YYYY-MM-DD"), profilePic: (file === null || file === void 0 ? void 0 : file.filename) ? file.filename : "default.png" });
                     delete user.password;
                     if (!(file === null || file === void 0 ? void 0 : file.filename)) return [3 /*break*/, 6];
@@ -131,11 +159,14 @@ function createUser(req, res, next) {
                 case 5:
                     _b.sent();
                     return [3 /*break*/, 8];
-                case 6: return [4 /*yield*/, Profile_picture.create({
+                case 6: 
+                // If file is not uploaded, set default profile picture
+                return [4 /*yield*/, Profile_picture.create({
                         userId: user.id,
                         mediaFileId: "default.png",
                     })];
                 case 7:
+                    // If file is not uploaded, set default profile picture
                     _b.sent();
                     _b.label = 8;
                 case 8:

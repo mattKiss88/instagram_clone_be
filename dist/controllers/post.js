@@ -73,11 +73,10 @@ function createPost(req, res, next) {
                     _a.sent();
                     return [4 /*yield*/, Post.create({
                             caption: req.body.caption,
-                            userId: req.user.user.id,
+                            userId: req.user.id,
                         })];
                 case 2:
                     post = _a.sent();
-                    console.log("name", req.body);
                     return [4 /*yield*/, Filter.findOne({
                             where: { filterName: req.body.filter },
                         })];
@@ -117,8 +116,8 @@ function getAllPosts(req, res, next) {
                     _a.trys.push([0, 6, , 7]);
                     id = req.params.id;
                     !id && res.status(400).send("id is required");
-                    console.log("get all posts ------------------->,", id);
                     return [4 /*yield*/, Post.findAll({
+                            raw: true,
                             where: { userId: id },
                         })];
                 case 1:
@@ -129,6 +128,7 @@ function getAllPosts(req, res, next) {
                             return __generator(this, function (_b) {
                                 switch (_b.label) {
                                     case 0: return [4 /*yield*/, Post_media.findAll({
+                                            raw: true,
                                             where: { postId: post.id },
                                         })];
                                     case 1:
@@ -138,8 +138,6 @@ function getAllPosts(req, res, next) {
                                             })];
                                     case 2:
                                         filter = _b.sent();
-                                        if (images[0])
-                                            images[0].filter = (filter === null || filter === void 0 ? void 0 : filter.filterName) || null;
                                         return [4 /*yield*/, Comment.count({
                                                 where: { postId: post.id },
                                             })];
@@ -150,21 +148,24 @@ function getAllPosts(req, res, next) {
                                             })];
                                     case 4:
                                         likeCount = _b.sent();
-                                        (0, logger_1.accessLog)("filter", filter);
-                                        return [2 /*return*/, { post: __assign(__assign({}, post), { commentCount: commentCount, likeCount: likeCount }), images: images }];
+                                        return [2 /*return*/, {
+                                                post: __assign(__assign({}, post), { commentCount: commentCount, likeCount: likeCount }),
+                                                images: images.map(function (image) {
+                                                    return __assign(__assign({}, image), { filter: (filter === null || filter === void 0 ? void 0 : filter.filterName) || null });
+                                                }),
+                                            }];
                                 }
                             });
                         }); }))];
                 case 2:
                     postArr = _a.sent();
                     return [4 /*yield*/, User.findOne({
+                            attributes: { exclude: ["password"] },
                             where: { id: id },
                             raw: true,
                         })];
                 case 3:
                     user = _a.sent();
-                    console.log("--------------------->user", user);
-                    delete user.password;
                     return [4 /*yield*/, Profile_picture.findOne({
                             where: { userId: id },
                         })];
@@ -173,7 +174,7 @@ function getAllPosts(req, res, next) {
                     return [4 /*yield*/, Follower.findOne({
                             where: {
                                 followerUserId: id,
-                                followingUserId: req.user.user.id,
+                                followingUserId: req.user.id,
                             },
                         })];
                 case 5:
@@ -212,6 +213,9 @@ function getImage(req, res, next) {
     });
 }
 exports.getImage = getImage;
+// export interface UserRequest extends Request {
+//   user?: any;
+// }
 function getFeed(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
         var id_1, following, feedArr, error_3;
@@ -232,7 +236,10 @@ function getFeed(req, res, next) {
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0: return [4 /*yield*/, Post.findAll({
+                                            raw: true,
                                             where: { userId: user === null || user === void 0 ? void 0 : user.followingUserId },
+                                            order: [["createdAt", "DESC"]],
+                                            limit: 5,
                                         })];
                                     case 1:
                                         posts = _a.sent();
@@ -242,6 +249,7 @@ function getFeed(req, res, next) {
                                                 return __generator(this, function (_b) {
                                                     switch (_b.label) {
                                                         case 0: return [4 /*yield*/, Post_media.findAll({
+                                                                raw: true,
                                                                 where: { postId: post.id },
                                                             })];
                                                         case 1:
@@ -251,8 +259,7 @@ function getFeed(req, res, next) {
                                                                 })];
                                                         case 2:
                                                             filter = _b.sent();
-                                                            (0, logger_1.accessLog)("filter", filter);
-                                                            return [4 /*yield*/, Post_likes.findAll({
+                                                            return [4 /*yield*/, Post_likes.count({
                                                                     where: { postId: post.id },
                                                                 })];
                                                         case 3:
@@ -266,9 +273,9 @@ function getFeed(req, res, next) {
                                                         case 5:
                                                             userDetails = _b.sent();
                                                             return [2 /*return*/, {
-                                                                    post: __assign(__assign({}, post.dataValues), { likeCount: likeCount.length, likes: likesPost ? true : false }),
+                                                                    post: __assign(__assign({}, post), { likeCount: likeCount, likes: !!likesPost }),
                                                                     images: images.map(function (image) {
-                                                                        return __assign(__assign({}, image.dataValues), { filter: filter === null || filter === void 0 ? void 0 : filter.filterName });
+                                                                        return __assign(__assign({}, image), { filter: filter === null || filter === void 0 ? void 0 : filter.filterName });
                                                                     }),
                                                                     user: __assign({}, userDetails),
                                                                 }];
@@ -284,7 +291,7 @@ function getFeed(req, res, next) {
                             .then(function (array) {
                             return array
                                 .flat(1)
-                                .sort(function (a, b) { return a.post.createdAt - b.post.createdAt; });
+                                .sort(function (a, b) { return b.post.createdAt - a.post.createdAt; });
                         })
                             .catch(function (err) { return console.log(err); })];
                 case 2:
@@ -293,7 +300,7 @@ function getFeed(req, res, next) {
                     return [3 /*break*/, 4];
                 case 3:
                     error_3 = _a.sent();
-                    console.log(error_3, "-------------------------wakanda forever");
+                    console.log(error_3, "-------------------------get feed error");
                     res.status(400).send(error_3);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
@@ -304,7 +311,7 @@ function getFeed(req, res, next) {
 exports.getFeed = getFeed;
 function toggleLike(req, res, next) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, postId, userId, like, data, error_4;
+        var _a, postId, userId, like, likeAction, error_4;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -315,18 +322,18 @@ function toggleLike(req, res, next) {
                         })];
                 case 1:
                     like = _b.sent();
-                    data = void 0;
+                    likeAction = void 0;
                     if (!like) return [3 /*break*/, 3];
                     return [4 /*yield*/, unlikePost(postId, userId)];
                 case 2:
-                    data = _b.sent();
+                    likeAction = _b.sent();
                     return [3 /*break*/, 5];
                 case 3: return [4 /*yield*/, likePost(postId, userId)];
                 case 4:
-                    data = _b.sent();
+                    likeAction = _b.sent();
                     _b.label = 5;
                 case 5:
-                    res.status(201).send({ data: data });
+                    res.status(201).send({ data: likeAction });
                     return [3 /*break*/, 7];
                 case 6:
                     error_4 = _b.sent();
@@ -429,22 +436,19 @@ function getRecommendedFriends(req, res, next) {
         return __generator(this, function (_d) {
             switch (_d.label) {
                 case 0:
-                    console.log("get recommended friends ------------------->", req === null || req === void 0 ? void 0 : req.user);
-                    _d.label = 1;
-                case 1:
-                    _d.trys.push([1, 4, , 5]);
+                    _d.trys.push([0, 3, , 4]);
                     return [4 /*yield*/, User.findAll({
-                            attributes: { exclude: ["password"] },
                             where: {
                                 id: (_c = {},
                                     _c[sequelize_1.Op.notIn] = [
-                                        sequelize_1.Sequelize.literal("(SELECT followingUserId FROM followers WHERE followerUserId = ".concat((_b = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.id, ")")),
+                                        sequelize_1.Sequelize.literal("(SELECT followingUserId FROM followers WHERE followerUserId = ".concat((_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id, ")")),
                                     ],
+                                    _c[sequelize_1.Op.ne] = (_b = req === null || req === void 0 ? void 0 : req.user) === null || _b === void 0 ? void 0 : _b.id,
                                     _c),
                             },
                             limit: 7,
                         })];
-                case 2:
+                case 1:
                     usersNotFollowing = _d.sent();
                     return [4 /*yield*/, Promise.all(usersNotFollowing.map(function (user) { return __awaiter(_this, void 0, void 0, function () {
                             var userDetails;
@@ -457,16 +461,16 @@ function getRecommendedFriends(req, res, next) {
                                 }
                             });
                         }); }))];
-                case 3:
+                case 2:
                     usersNotFollowingDetails = _d.sent();
                     res.status(200).send({ users: usersNotFollowingDetails });
-                    return [3 /*break*/, 5];
-                case 4:
+                    return [3 /*break*/, 4];
+                case 3:
                     error_8 = _d.sent();
                     res.status(400).send({ error: "Error getting recommended friends" });
-                    console.log("ERROR getting recommended friends *******************************************");
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/];
+                    (0, logger_1.accessLog)("GET Recommended Friends Error", error_8);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });

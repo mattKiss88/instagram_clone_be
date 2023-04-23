@@ -17,7 +17,6 @@ export interface IComment {
   createdByUserId: number;
   postId: number;
   commentRepliedToId: number | null;
-  // user: User;
 }
 
 // post
@@ -105,7 +104,6 @@ export interface IMedia_file {
   id: number;
   mediaFileId: string;
   mediaFile: Buffer;
-
   createdAt: Date;
   updatedAt: Date;
 }

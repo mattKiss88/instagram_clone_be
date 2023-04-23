@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
+import { accessLog } from "../helpers/logger";
 const jwt = require("jsonwebtoken");
 
 interface User {
   id: number;
   username: string;
   email: string;
+  fullName: string;
 }
 
 declare global {
@@ -23,9 +25,9 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
   jwt.verify(
     token,
     process.env.ACCESS_TOKEN_SECRET,
-    (err: Error, user: User) => {
+    (err: Error, user: { user: User }) => {
       if (err) return res.sendStatus(403);
-      req.user = { ...user };
+      req.user = { ...user.user };
       next();
     }
   );

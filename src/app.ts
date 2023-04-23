@@ -1,12 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { uploadFile } from "./helpers/s3";
-import { Request, Response } from "express";
 import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { userRouter } from "./routes/user";
 import { commentRouter } from "./routes/comment";
-const { Post, Post_media } = require("../models");
+import { getS3Objects } from "./helpers/s3";
+import { accessLog } from "./helpers/logger";
 var cookieParser = require("cookie-parser");
 
 const app = express();
@@ -18,7 +17,7 @@ const cors = require("cors");
 let corsOptions: object;
 
 corsOptions = {
-  origin: ["*", "http://localhost:3000"],
+  origin: ["*", "http://localhost:3000", "http://localhost:3002"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessState: 204,
   // credentials: true,
@@ -31,6 +30,10 @@ corsOptions = {
 //     "Origin, X-Requested-With, Content-Type, Accept"
 //   );
 //   next();
+// });
+
+// getS3Objects().then((data: string[]) => {
+//   accessLog("s3", data);
 // });
 
 app.use(cookieParser());

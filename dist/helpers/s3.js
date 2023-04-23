@@ -30,11 +30,6 @@ var uploadFile = function (file) {
 exports.uploadFile = uploadFile;
 // download a file from s3
 var getFileStream = function (fileKey) {
-    console.log("fileKey", fileKey);
-    console.log("bucketName", bucketName);
-    console.log("region", region);
-    console.log("accessKeyId", accessKeyId);
-    console.log("secretAccessKey", secretAccessKey);
     var downloadParams = {
         Key: fileKey,
         Bucket: bucketName || "",

@@ -1,3 +1,5 @@
+import { accessLog } from "./logger";
+
 const {
   Post,
   Post_media,
@@ -8,13 +10,16 @@ const {
   Comment,
   Filter,
 } = require("../../models");
-export const getUserDetails = async (userId: number) => {
+
+export const getUserDetails = async (
+  userId: number,
+  requestUserId?: number
+) => {
   try {
     const user = await User.findOne({
+      attributes: { exclude: ["password"] },
       where: { id: userId },
     });
-
-    delete user.dataValues.password;
 
     const profilePic = await Profile_picture.findOne({
       where: { userId: userId },
@@ -44,11 +49,20 @@ export const getUserDetails = async (userId: number) => {
           where: { postId: post.id },
         });
 
+        let loggedInUserLike;
+
+        if (requestUserId) {
+          loggedInUserLike = await Post_likes.findOne({
+            where: { postId: post.id, userId: requestUserId },
+          });
+        }
+
         return {
           post: {
             ...post.dataValues,
             likeCount: likes?.length,
             commentCount: comments?.length,
+            isLiked: !!loggedInUserLike,
           },
           images: images.map((image: any) => {
             return { ...image.dataValues, filter: image.filter || null };
@@ -73,6 +87,7 @@ export const getUserDetails = async (userId: number) => {
       avatar: profilePic?.mediaFileId ? profilePic?.mediaFileId : "default.png",
     };
   } catch (err) {
+    accessLog("GET USER DETAILS HELPER ERROR: ", err);
     throw err;
   }
 };
