@@ -27,9 +27,14 @@ export const getUserDetails = async (
 
     const userPostList = await Post.findAll({
       where: { userId: userId },
+      order: [["createdAt", "DESC"]], // Order by createdAt property in descending order
     });
 
-    const userPostListWithImg = await Promise.all(
+    // console.log("userPostList", userPostList);
+
+    accessLog("userPostList", userPostList);
+
+    let userPostListWithImg = await Promise.all(
       userPostList.map(async (post: any) => {
         const images = await Post_media.findAll({
           where: { postId: post.id },
@@ -70,6 +75,8 @@ export const getUserDetails = async (
         };
       })
     );
+
+    userPostListWithImg.filter((post: any) => {});
 
     const followers = await Follower.findAll({
       where: { followingUserId: userId },

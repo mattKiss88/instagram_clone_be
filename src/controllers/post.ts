@@ -6,6 +6,7 @@ import { Op, Sequelize } from "sequelize";
 import { getUserDetails } from "../helpers/getUserPostsAndStats";
 import { accessLog } from "../helpers/logger";
 import { File, IPost, IPost_media, IUser } from "./types";
+import { compressImage } from "../helpers/compressImg";
 const {
   Post,
   Post_media,
@@ -27,7 +28,13 @@ async function createPost(req: FileRequest, res: Response) {
   try {
     const file: File = req.file;
 
-    await uploadFile(file);
+    // Compress image
+
+    accessLog("createPost", file);
+
+    await compressImage(file.path, file.path + "-compressed", 600, 95);
+
+    await uploadFile({ ...file, path: file.path + "-compressed" });
 
     const post = await Post.create({
       caption: req.body.caption,
@@ -49,6 +56,7 @@ async function createPost(req: FileRequest, res: Response) {
     const user = await getUserDetails(req.user.id);
 
     await unlinkFile(file.path);
+    await unlinkFile(file.path + "-compressed");
 
     res.status(201).send({
       post: { ...post.dataValues, isLiked: false, likeCount: 0 },
@@ -70,6 +78,7 @@ async function getAllPosts(req: Request, res: Response) {
     const posts = await Post.findAll({
       raw: true,
       where: { userId: id },
+      order: [["createdAt", "DESC"]], // Order by createdAt property in descending order
     });
 
     const postArr = await Promise.all(
@@ -246,7 +255,7 @@ async function likePost(postId: number, userId: number) {
       userId,
     });
 
-    return like;
+    return "successfully liked post";
   } catch (error: unknown) {
     console.log(error);
   }
@@ -258,7 +267,7 @@ async function unlikePost(postId: number, userId: number) {
       where: { postId, userId },
     });
 
-    return like;
+    return "successfully unliked post";
   } catch (error: unknown) {
     console.log(error);
   }
@@ -266,12 +275,33 @@ async function unlikePost(postId: number, userId: number) {
 
 async function getRecommendedFriends(req: Request, res: Response) {
   try {
+    // // Get list of users the current user is following
+    // const followers = await Follower.findAll({
+    //   attributes: ["followingUserId"],
+    //   where: { followerUserId: req?.user?.id },
+    //   raw: true,
+    // });
+
+    // // Extract ids to a simple array
+    // const ids = followers.map((follower: any) => follower.followingUserId);
+
+    // // Find users not being followed
+    // const usersNotFollowing = await User.findAll({
+    //   where: {
+    //     id: {
+    //       [Op.notIn]: ids,
+    //       [Op.ne]: req?.user?.id,
+    //     },
+    //   },
+    //   limit: 7,
+    // });
+
     const usersNotFollowing = await User.findAll({
       where: {
         id: {
           [Op.notIn]: [
             Sequelize.literal(
-              `(SELECT followingUserId FROM followers WHERE followerUserId = ${req?.user?.id})`
+              `(SELECT followingUserId FROM Followers WHERE followerUserId = ${req?.user?.id})`
             ),
           ],
           [Op.ne]: req?.user?.id,
@@ -279,7 +309,6 @@ async function getRecommendedFriends(req: Request, res: Response) {
       },
       limit: 7,
     });
-
     const usersNotFollowingDetails = await Promise.all(
       usersNotFollowing.map(async (user: IUser) => {
         const userDetails = await getUserDetails(user.id);

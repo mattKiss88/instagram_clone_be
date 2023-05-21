@@ -12,6 +12,7 @@ import moment from "moment";
 import { File } from "./types";
 import { Op } from "sequelize";
 import { accessLog } from "../helpers/logger";
+import createRandomFriendships from "../helpers/seedUser";
 
 // Handler function to get user information
 
@@ -102,6 +103,14 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
   try {
     const { email, password, username, fullName, dob, bio } = req.body.userData;
 
+    // Check if user already exists
+
+    let userExists = await User.findOne({ where: { email } });
+
+    if (userExists) {
+      throw new Error("User already exists");
+    }
+
     // Hash password
 
     const hashedPassword: string = await bcrypt.hash(password, 10);
@@ -151,6 +160,10 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
       });
     }
 
+    // Give user  default followers
+
+    await createRandomFriendships(user.id, 10);
+
     // Generate access token using user information
 
     const accessToken: string | object = jwt.sign(
@@ -158,11 +171,12 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
       process.env.ACCESS_TOKEN_SECRET
     );
 
-    res.status(200).send({ user, token: accessToken });
-    console.log("great success");
-  } catch (err: unknown) {
-    console.log(err);
-    return res.status(400).send("Invalid email or password");
+    res.status(201).send({ user, token: accessToken });
+  } catch (err: any) {
+    console.log(err?.message, "error creating user");
+    return res.status(400).send({
+      message: err?.message ? err?.message : "Error, please try again.",
+    });
   }
 }
 export { getUser, createUser };

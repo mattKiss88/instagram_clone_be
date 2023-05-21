@@ -9,7 +9,7 @@ import { accessLog } from "./helpers/logger";
 var cookieParser = require("cookie-parser");
 
 const app = express();
-const port = 3001;
+const port = 3002;
 
 require("dotenv").config();
 
@@ -17,9 +17,9 @@ const cors = require("cors");
 let corsOptions: object;
 
 corsOptions = {
-  origin: ["*", "http://localhost:3000", "http://localhost:3002"],
+  origin: ["http://localhost:3000", "http://localhost:3001"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  optionsSuccessState: 204,
+  optionsSuccessStatus: 204,
   // credentials: true,
 };
 

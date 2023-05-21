@@ -5,12 +5,14 @@ const { Op } = require("sequelize");
 import fs from "fs";
 import util from "util";
 import { accessLog } from "../helpers/logger";
+import { compressImage } from "../helpers/compressImg";
 const unlinkFile = util.promisify(fs.unlink);
 
 const { Post, User, Profile_picture, Follower } = require("../../models");
 require("dotenv").config();
 
 async function getUser(req: Request, res: Response, next: NextFunction) {
+  accessLog("getUser", req.params);
   try {
     const { id } = req.params;
 
@@ -105,8 +107,6 @@ async function searchUser(req: Request, res: Response, next: NextFunction) {
   const { search } = req.query;
   const { username, fullName } = req.user ?? {};
 
-  accessLog(`Psearch error`, req.user);
-
   try {
     const filterUsers = await User.findAll({
       where: {
@@ -158,7 +158,9 @@ async function patchProfileImg(req: FileRequest, res: Response) {
       },
     });
 
-    await uploadFile(file);
+    await compressImage(file.path, file.path + "-compressed", 180, 90);
+
+    await uploadFile({ ...file, path: file.path + "-compressed" });
 
     if (profilePic) {
       await Profile_picture.update(
@@ -178,6 +180,7 @@ async function patchProfileImg(req: FileRequest, res: Response) {
       });
     }
     await unlinkFile(file.path);
+    await unlinkFile(file.path + "-compressed");
 
     res
       .status(201)
