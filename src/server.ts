@@ -1,5 +1,5 @@
 import app from "./app";
-const port = 3003;
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   return console.log(`Express is at http://localhost:${port}`);

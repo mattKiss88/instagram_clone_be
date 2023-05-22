@@ -107,8 +107,14 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
 
     let userExists = await User.findOne({ where: { email } });
 
+    let usernameExists = await User.findOne({ where: { username } });
+
     if (userExists) {
       throw new Error("User already exists");
+    }
+
+    if (usernameExists) {
+      throw new Error("Username already exists");
     }
 
     // Hash password
@@ -173,7 +179,7 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
 
     res.status(201).send({ user, token: accessToken });
   } catch (err: any) {
-    console.log(err?.message, "error creating user");
+    console.log(err, "error creating user");
     return res.status(400).send({
       message: err?.message ? err?.message : "Error, please try again.",
     });

@@ -16,6 +16,13 @@ interface UserObject {
   id: number;
 }
 
+function randomDateLast30Days() {
+  let daysAgo = Math.floor(Math.random() * 30) + 1; // 1 to 30
+  let date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return date;
+}
+
 async function seedUser(userId: number, iterations: number): Promise<void> {
   try {
     for (let i = 0; i < iterations; i++) {
@@ -47,13 +54,17 @@ async function seedUser(userId: number, iterations: number): Promise<void> {
       });
 
       console.log(`User ${userId} is now following user ${randomUser?.id}`);
+    }
 
+    for (let i = 0; i < 3; i++) {
       // create a new post
+
+      const createdAt = randomDateLast30Days();
 
       const post = await Post.create({
         userId: userId,
         caption: randTextRange({ min: 10, max: 100 }),
-        createdAt: new Date(),
+        createdAt, // random date between 1 and 30 days ago,
       });
 
       await Post_media.create({
@@ -61,7 +72,7 @@ async function seedUser(userId: number, iterations: number): Promise<void> {
         mediaFileId: postImgs[Math.floor(Math.random() * postImgs.length)],
         filterId: null,
         position: 1,
-        createdAt: new Date(),
+        createdAt,
       });
 
       for (let i = 0; i < 8; i++) {

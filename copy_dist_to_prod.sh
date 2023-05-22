@@ -2,7 +2,7 @@
 mkdir -p prod
 cp -R dist/* prod/
 cp nodemon.json prod/
-# cp package.json prod/
+cp package.json prod/
 cp package-lock.json prod/
 cp access.log prod/
 cp access_d.log prod/

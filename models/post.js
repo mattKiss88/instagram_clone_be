@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       userId: DataTypes.NUMBER,
       caption: DataTypes.STRING,
+      createdAt: DataTypes.DATE,
     },
     {
       sequelize,
