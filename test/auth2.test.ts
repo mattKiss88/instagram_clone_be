@@ -1,9 +1,7 @@
 import request from "supertest";
 import app from "../src/app"; // path to your server.ts
-const { User, Profile_picture, Follower } = require("../models"); // import your models
+const { User, Profile_picture, Follower, sequelize } = require("../models"); // import your models
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-const { sequelize } = require("../models");
 
 jest.mock("../src/helpers/seedUser");
 jest.mock("bcrypt");
@@ -68,6 +66,8 @@ describe("createUser controller", () => {
         avatar: "default.png",
       },
     });
+
+    expect(response.body.user).not.toHaveProperty("password");
   });
   it("should create user and return user object and token if unessential fields are omitted", async () => {
     (bcrypt.hash as jest.Mock).mockResolvedValue("hashedPassword");
@@ -115,6 +115,76 @@ describe("createUser controller", () => {
     expect(response.body).toEqual({
       message: "Invalid data format",
     });
+  });
+  it("should return 400 if incorrectly formatted email provided", async () => {
+    (bcrypt.hash as jest.Mock).mockResolvedValue("hashedPassword");
+
+    const mockUser = {
+      password: "test1234",
+      username: "testUser123",
+      email: "test1234example.com",
+    };
+
+    const response = await request(app)
+      .post("/auth/signup")
+      .send({ userData: mockUser });
+    expect(response.status).toBe(400);
+
+    expect(response.body).toEqual({
+      message: "Invalid data format",
+    });
+  });
+  it("should return 409 if user already exists", async () => {
+    // Mock only the findOne method for this test case
+    const mockFindOne = jest.spyOn(User, "findOne").mockResolvedValueOnce({
+      email: "test1234@example.com",
+    });
+
+    // Your test logic ...
+
+    const mockUser = {
+      password: "test1234",
+      username: "testUser123",
+      email: "test1234@example.com",
+    };
+
+    const response = await request(app)
+      .post("/auth/signup")
+      .send({ userData: mockUser });
+    expect(response.status).toBe(409);
+
+    expect(response.body).toEqual({
+      message: "User already exists",
+    });
+
+    // Clean up after test
+    mockFindOne.mockRestore();
+  });
+  it("should return 409 if username already exists", async () => {
+    // Mock only the findOne method for this test case
+    const mockFindOne = jest.spyOn(User, "findOne").mockResolvedValueOnce({
+      username: "testUser123",
+    });
+
+    // Your test logic ...
+
+    const mockUser = {
+      password: "test1234",
+      username: "testUser123",
+      email: "test1234@example.com",
+    };
+
+    const response = await request(app)
+      .post("/auth/signup")
+      .send({ userData: mockUser });
+    expect(response.status).toBe(409);
+
+    expect(response.body).toEqual({
+      message: "Username already exists",
+    });
+
+    // Clean up after test
+    mockFindOne.mockRestore();
   });
 
   // Add more test cases like for wrong password, user not found, etc.

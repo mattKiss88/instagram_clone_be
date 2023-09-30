@@ -92,6 +92,7 @@ async function seedUser(userId: number, iterations: number): Promise<void> {
     } else {
       console.error("An unexpected error occurred");
     }
+    throw new Error("An unexpected error occurred");
   }
 }
 

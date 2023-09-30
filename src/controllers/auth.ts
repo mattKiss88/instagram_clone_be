@@ -105,11 +105,15 @@ type UserData = {
 async function createUser(req: FileRequest, res: Response, next: NextFunction) {
   const UserDataSchema = Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().required().min(6),
-    username: Joi.string().required(),
-    fullName: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
+    password: Joi.string().required().min(6).max(20),
+    username: Joi.string().required().max(18),
+    fullName: Joi.alternatives()
+      .try(Joi.string().min(1).max(40), Joi.valid(null))
+      .optional(),
     dob: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
-    bio: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
+    bio: Joi.alternatives()
+      .try(Joi.string().max(100), Joi.valid(null))
+      .optional(),
   });
 
   const userObject = req.body.userData;
@@ -209,10 +213,6 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
   } catch (err: any) {
     console.log(err, "error creating user");
     next(err);
-
-    // return res.status(400).send({
-    //   message: err?.message ? err?.message : "Error, please try again.",
-    // });
   }
 }
 export { getUser, createUser };

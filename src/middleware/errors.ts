@@ -24,6 +24,11 @@ const handleGenericErrors = (err: any, req: any, res: any, next: any) => {
       break;
     case "Invalid data format":
       res.status(400).send({ message: "Invalid data format" });
+      break;
+    case "User already exists":
+      res.status(409).send({ message: "User already exists" });
+    case "Username already exists":
+      res.status(409).send({ message: "Username already exists" });
     default:
       next(err);
   }
