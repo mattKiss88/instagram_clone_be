@@ -5,6 +5,13 @@ import { postRouter } from "./routes/post";
 import { userRouter } from "./routes/user";
 import { commentRouter } from "./routes/comment";
 import cors from "cors";
+import {
+  handleSqlErrors,
+  handleGenericErrors,
+  handleServerErrors,
+} from "./middleware/errors";
+
+const endpoints = require("../endpoints.json");
 
 var cookieParser = require("cookie-parser");
 
@@ -59,5 +66,15 @@ app.use("/comment", commentRouter);
 app.get("/", (req, res) => {
   res.send(`Hello from Instagram! Running on port ${port}`);
 });
+
+app.get("/api", (req, res) => {
+  res.send(endpoints);
+});
+
+app.use(handleSqlErrors);
+
+app.use(handleGenericErrors);
+
+app.use(handleServerErrors);
 
 export default app;

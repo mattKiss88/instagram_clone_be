@@ -11,3 +11,4 @@ cp -R migrations prod/
 cp -R models prod/
 cp -R seeders prod/
 cp -R uploads prod/
+cp -R .ebextensions prod/

@@ -5,7 +5,7 @@ import fs from "fs";
 import util from "util";
 const unlinkFile = util.promisify(fs.unlink);
 const bcrypt = require("bcrypt");
-const { User, Profile_picture, Follower } = require("../../models");
+const { User, Profile_picture, Follower, sequelize } = require("../../models");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 import moment from "moment";
@@ -13,6 +13,7 @@ import { File } from "./types";
 import { Op } from "sequelize";
 import { accessLog } from "../helpers/logger";
 import createRandomFriendships from "../helpers/seedUser";
+import Joi from "joi";
 
 // Handler function to get user information
 
@@ -34,7 +35,15 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
       ],
     });
 
-    console.log(user.id, "user id");
+    // If user not found, throw an error
+
+    if (!user) throw new Error("User not found");
+
+    // Validate password
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    // If password is invalid, throw an error
+    if (!validPassword) throw new Error("Invalid password");
 
     // find user followers
 
@@ -50,15 +59,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
     followingUsers = followingUsers.map(
       (user: { followingUserId: number }) => user.followingUserId
     );
-    // If user not found, throw an error
-
-    if (!user) throw new Error("User not found");
-
-    // Validate password
-    const validPassword = await bcrypt.compare(password, user.password);
-
-    // If password is invalid, throw an error
-    if (!validPassword) throw new Error("Invalid password");
 
     // Generate access token using user information
 
@@ -84,11 +84,7 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     accessLog("LOGIN USER ERROR", err);
 
-    return res
-      .status(400)
-      .send(
-        "Sorry, your password was incorrect. Please double-check your password."
-      );
+    next(err);
   }
 }
 
@@ -97,24 +93,55 @@ interface FileRequest extends Request {
   file?: File;
 }
 
-// Interface to extend Request type with File property
+type UserData = {
+  email: string;
+  password: string;
+  username: string;
+  fullName?: string;
+  dob?: Date | string; // depending on how you handle dates
+  bio?: string;
+};
 
 async function createUser(req: FileRequest, res: Response, next: NextFunction) {
+  const UserDataSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required().min(6),
+    username: Joi.string().required(),
+    fullName: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
+    dob: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
+    bio: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
+  });
+
+  const userObject = req.body.userData;
+
+  const validationResult = UserDataSchema.validate(userObject);
+
   try {
-    const { email, password, username, fullName, dob, bio } = req.body.userData;
+    if (validationResult.error) {
+      console.log("Validation error:", validationResult.error.details);
+      // Respond with an error, for example:
+
+      throw new Error("Invalid data format");
+    }
+
+    const { email, password, username, fullName, dob, bio } = req.body
+      .userData as UserData;
 
     // Check if user already exists
 
-    let userExists = await User.findOne({ where: { email } });
+    let existingUser = await User.findOne({
+      where: {
+        [Op.or]: [{ email }, { username }],
+      },
+    });
 
-    let usernameExists = await User.findOne({ where: { username } });
-
-    if (userExists) {
-      throw new Error("User already exists");
-    }
-
-    if (usernameExists) {
-      throw new Error("Username already exists");
+    if (existingUser) {
+      if (existingUser.email === email) {
+        throw new Error("User already exists");
+      }
+      if (existingUser.username === username) {
+        throw new Error("Username already exists");
+      }
     }
 
     // Hash password
@@ -127,20 +154,22 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
 
     // Create user in the database
 
-    let user = await User.create({
+    const userInstance = await User.create({
       email,
       password: hashedPassword,
       username,
-      fullName,
-      dob,
-      bio,
+      fullName: fullName ? fullName : null,
+      dob: dob ? dob : null,
+      bio: bio ? bio : null,
     });
 
     // Format user data and update profile picture
 
-    user = {
-      ...user.dataValues,
-      dob: moment(user.dataValues.dob).format("YYYY-MM-DD"),
+    const user = {
+      ...userInstance.dataValues,
+      dob: userInstance.dataValues.dob
+        ? moment(userInstance.dataValues.dob).format("YYYY-MM-DD")
+        : null,
       avatar: file?.filename ? file.filename : "default.png",
     };
 
@@ -159,7 +188,6 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
       await unlinkFile(file.path);
     } else {
       // If file is not uploaded, set default profile picture
-
       await Profile_picture.create({
         userId: user.id,
         mediaFileId: "default.png",
@@ -180,9 +208,11 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
     res.status(201).send({ user, token: accessToken });
   } catch (err: any) {
     console.log(err, "error creating user");
-    return res.status(400).send({
-      message: err?.message ? err?.message : "Error, please try again.",
-    });
+    next(err);
+
+    // return res.status(400).send({
+    //   message: err?.message ? err?.message : "Error, please try again.",
+    // });
   }
 }
 export { getUser, createUser };

@@ -73,7 +73,9 @@ async function getAllPosts(req: Request, res: Response) {
   try {
     const { id } = req.params;
 
-    !id && res.status(400).send("id is required");
+    if (!id) {
+      return res.status(400).send("id is required");
+    }
 
     const posts = await Post.findAll({
       raw: true,
@@ -144,7 +146,7 @@ async function getAllPosts(req: Request, res: Response) {
       },
     });
 
-    res.status(201).send({
+    res.status(200).send({
       posts: postArr,
       user: {
         ...user,

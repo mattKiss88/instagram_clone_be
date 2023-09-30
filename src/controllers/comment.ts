@@ -28,6 +28,7 @@ async function addComment(req: Request, res: Response, next: NextFunction) {
     });
   } catch (error: unknown) {
     // Catch and handle errors
+
     console.log(error);
     res.status(400).send(error);
   }
