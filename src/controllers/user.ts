@@ -26,7 +26,7 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     userDetails = {
       ...userDetails,
-      password: undefined, // Exclude password from userDetails
+      // password: undefined, // Exclude password from userDetails
     };
 
     const isFollowing = await Follower.findOne({
@@ -139,7 +139,7 @@ async function searchUser(req: Request, res: Response, next: NextFunction) {
   } catch (error: unknown) {
     console.error(error);
 
-    res.status(500).send("Error searching for users");
+    next(error);
   }
 }
 
@@ -214,11 +214,11 @@ async function getFriends(req: Request, res: Response, next: NextFunction) {
       })
     );
 
-    res.status(201).send({ followingUsers });
+    res.status(200).send({ followingUsers });
   } catch (error: unknown) {
     console.log(error);
     accessLog(`GET Friends List Error`, error);
-    res.status(400).send();
+    next(error);
   }
 }
 
