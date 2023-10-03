@@ -6,6 +6,8 @@ import fs from "fs";
 import util from "util";
 import { accessLog } from "../helpers/logger";
 import { compressImage } from "../helpers/compressImg";
+import Joi from "joi";
+
 const unlinkFile = util.promisify(fs.unlink);
 
 const { Post, User, Profile_picture, Follower } = require("../../models");
@@ -24,10 +26,10 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     let userDetails = await getUserDetails(user.id, req?.user?.id);
 
-    userDetails = {
-      ...userDetails,
-      // password: undefined, // Exclude password from userDetails
-    };
+    // userDetails = {
+    //   ...userDetails,
+    //   // password: undefined, // Exclude password from userDetails
+    // };
 
     const isFollowing = await Follower.findOne({
       where: {
@@ -42,8 +44,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
       },
       attributes: ["followingUserId"],
     });
-
-    console.log(followingUsers);
 
     followingUsers = followingUsers.map(
       (user: { followingUserId: number }) => user.followingUserId
@@ -63,43 +63,55 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 }
 
 async function followUser(req: Request, res: Response, next: NextFunction) {
+  const ReqBodySchema = Joi.object({
+    userId: Joi.number().required(),
+  });
+
   try {
     const userObj = req?.user;
+    const { userId } = req.body;
+
+    const validationResult = ReqBodySchema.validate(req.body);
+
+    if (validationResult.error) {
+      console.log("Validation error:", validationResult.error.details);
+      // Respond with an error, for example:
+
+      throw new Error("Invalid data format");
+    }
 
     // check if user is already following
 
     const following = await Follower.findOne({
       where: {
-        followerUserId: userObj?.id,
-        followingUserId: req.body?.userId,
+        followerUserId: userObj.id,
+        followingUserId: userId,
       },
     });
 
     if (following) {
-      // return res.status(400).send("You are already following this user");
-
       await Follower.destroy({
         where: {
-          followerUserId: userObj?.id,
-          followingUserId: req.body?.userId,
+          followerUserId: userObj.id,
+          followingUserId: userId,
         },
       });
 
-      return res.status(200).send({
+      return res.status(201).send({
         msg: "You have unfollowed this user",
       });
     }
 
     const follow = await Follower.create({
       followerUserId: userObj?.id,
-      followingUserId: req.body.userId,
+      followingUserId: userId,
       createdAt: new Date(),
     });
 
     res.status(201).send({ follow, msg: "You are now following this user" });
   } catch (error: unknown) {
     console.log(error);
-    res.status(400).send(error);
+    next(error);
   }
 }
 
