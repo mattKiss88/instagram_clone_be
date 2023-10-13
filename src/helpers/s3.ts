@@ -41,10 +41,6 @@ export const getFileStream = (fileKey: string) => {
     Bucket: bucketName || "",
   };
 
-  // fs.writeFile("a.jpg", z, function (err: any) {
-  //   if (err) return console.log("err", err);
-  // });
-
   return s3.getObject(downloadParams).createReadStream();
 };
 

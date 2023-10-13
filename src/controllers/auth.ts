@@ -108,7 +108,7 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
     password: Joi.string().required().min(6).max(20),
     username: Joi.string().required().max(18),
     fullName: Joi.alternatives()
-      .try(Joi.string().min(1).max(40), Joi.valid(null))
+      .try(Joi.string().min(0).max(40), Joi.valid(null))
       .optional(),
     dob: Joi.alternatives().try(Joi.string(), Joi.valid(null)).optional(),
     bio: Joi.alternatives()
@@ -141,7 +141,7 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
 
     if (existingUser) {
       if (existingUser.email === email) {
-        throw new Error("User already exists");
+        throw new Error("Email already exists");
       }
       if (existingUser.username === username) {
         throw new Error("Username already exists");

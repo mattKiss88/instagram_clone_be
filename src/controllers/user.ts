@@ -26,11 +26,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 
     let userDetails = await getUserDetails(user.id, req?.user?.id);
 
-    // userDetails = {
-    //   ...userDetails,
-    //   // password: undefined, // Exclude password from userDetails
-    // };
-
     const isFollowing = await Follower.findOne({
       where: {
         followerUserId: req?.user?.id,
@@ -160,7 +155,7 @@ interface FileRequest extends Request {
 }
 
 async function patchProfileImg(req: FileRequest, res: Response) {
-  const userId = req?.user?.id;
+  const userId = req.user?.id;
   const file: any = req?.file;
 
   try {

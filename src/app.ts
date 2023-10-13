@@ -4,6 +4,7 @@ import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { userRouter } from "./routes/user";
 import { commentRouter } from "./routes/comment";
+import { testRouter } from "./routes/test";
 import cors from "cors";
 import {
   handleSqlErrors,
@@ -62,6 +63,12 @@ app.use("/auth", authRouter);
 app.use("/post", postRouter);
 app.use("/user", userRouter);
 app.use("/comment", commentRouter);
+
+const isTestEnv = process.env.NODE_ENV === "development";
+
+if (isTestEnv) {
+  app.use("/test", testRouter);
+}
 
 app.get("/", (req, res) => {
   res.send(`Hello from Instagram! Running on port ${port}`);
