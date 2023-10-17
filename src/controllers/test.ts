@@ -20,7 +20,6 @@ export const resetDatabase = async (req: Request, res: Response) => {
         res.status(200).send("Database seeded successfully");
       }
     );
-    res.sendStatus(200);
   } catch (error: any) {
     res.status(500).send(error.message);
   }

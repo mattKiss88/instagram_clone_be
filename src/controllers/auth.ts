@@ -54,8 +54,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
       attributes: ["followingUserId"],
     });
 
-    console.log(followingUsers);
-
     followingUsers = followingUsers.map(
       (user: { followingUserId: number }) => user.followingUserId
     );
@@ -80,7 +78,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
     // res.status(200).send({ success: true });
   } catch (err: unknown) {
     // If error occurs, send error message in response
-    console.log(err);
 
     accessLog("LOGIN USER ERROR", err);
 
@@ -98,7 +95,7 @@ type UserData = {
   password: string;
   username: string;
   fullName?: string;
-  dob?: Date | string; // depending on how you handle dates
+  dob?: Date | string;
   bio?: string;
 };
 
@@ -209,7 +206,18 @@ async function createUser(req: FileRequest, res: Response, next: NextFunction) {
       process.env.ACCESS_TOKEN_SECRET
     );
 
-    res.status(201).send({ user, token: accessToken });
+    let followingUsers = await Follower.findAll({
+      where: {
+        followerUserId: user.id,
+      },
+      attributes: ["followingUserId"],
+    });
+
+    followingUsers = followingUsers.map(
+      (user: { followingUserId: number }) => user.followingUserId
+    );
+
+    res.status(201).send({ user, token: accessToken, followingUsers });
   } catch (err: any) {
     console.log(err, "error creating user");
     next(err);
