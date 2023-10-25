@@ -64,7 +64,7 @@ app.use("/post", postRouter);
 app.use("/user", userRouter);
 app.use("/comment", commentRouter);
 
-const isTestEnv = process.env.NODE_ENV === "development";
+const isTestEnv = process.env.NODE_ENV !== "production";
 
 if (isTestEnv) {
   app.use("/test", testRouter);

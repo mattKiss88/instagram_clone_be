@@ -203,6 +203,4 @@ describe("createUser controller", () => {
     expect(response.status).toBe(500);
     // expect(response.body).toBe("Error searching for users");
   });
-
-  // Add more test cases like for wrong password, user not found, etc.
 });

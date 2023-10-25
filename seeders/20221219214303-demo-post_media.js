@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 const AWS = require("aws-sdk");
 const posts_media = [];
-const { postImgs } = require("../src/helpers/s3FileIds.ts");
+const { postImgs } = require("../src/helpers/s3FileIds");
 
 for (let i = 1; i < 400; i++) {
   const postId = i;

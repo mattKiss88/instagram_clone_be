@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 
-const { avatarImgs } = require("../src/helpers/s3FileIds.ts");
+const { avatarImgs } = require("../src/helpers/s3FileIds");
 
 const profilePics = [];
 

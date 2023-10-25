@@ -1,13 +1,4 @@
-const {
-  Post,
-  Post_media,
-  User,
-  Profile_picture,
-  Follower,
-  Post_likes,
-  Comment,
-  Filter,
-} = require("../../models");
+const { Post, Post_media, User, Follower, Comment } = require("../../models");
 import { Op, Sequelize } from "sequelize";
 const { randTextRange } = require("@ngneat/falso");
 const { postImgs } = require("./s3FileIds");

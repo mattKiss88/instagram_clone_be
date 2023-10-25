@@ -61,5 +61,4 @@ describe("getUser controller", () => {
       message: "Invalid username or password.",
     });
   });
-  // Add more test cases like for wrong password, user not found, etc.
 });
