@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "start": "tsc && node dist/src/server.js",
+    "start": "node src/server.js",
     "start:dev": "nodemon",
-    "build": "tsc && node dist/src/server.js"
+    "build": "tsc &&  npm run copy-assets",
+    "copy-assets": "copyfiles config/**/* migrations/**/* models/**/* seeders/**/* *.json *.yml -e tsconfig.json dist/ && copyfiles -f src/helpers/s3FileIds.js dist/src/helpers/"
   },
   "keywords": [],
   "author": "",
@@ -45,6 +46,7 @@
     "@types/node": "^18.11.9",
     "@types/supertest": "^2.0.13",
     "babel-jest": "^29.7.0",
+    "copyfiles": "^2.4.1",
     "jest": "^29.7.0",
     "nodemon": "^2.0.20",
     "supertest": "^6.3.3",
