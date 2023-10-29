@@ -107,10 +107,6 @@ describe("searchUser controller", () => {
     expect(response.body.followingUsers).toHaveLength(2);
   });
   it("should return an empty array if user has no friends", async () => {
-    let transaction: any;
-
-    transaction = await sequelize.transaction();
-
     let user = await User.create(
       {
         email: "james@gmail.com",
@@ -135,7 +131,5 @@ describe("searchUser controller", () => {
     expect(response.status).toBe(200);
     expect(response.body.followingUsers).toBeInstanceOf(Array);
     expect(response.body.followingUsers).toHaveLength(0);
-
-    await transaction.rollback();
   });
 });

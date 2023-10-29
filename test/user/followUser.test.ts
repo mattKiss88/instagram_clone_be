@@ -48,7 +48,9 @@ describe("followUser controller", () => {
   afterEach(async () => {
     jest.restoreAllMocks();
 
-    await transaction.rollback();
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
   });
 
   it("Should follow the target user without errors", async () => {
@@ -90,43 +92,45 @@ describe("followUser controller", () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toBe("Invalid data format");
   });
-  //   it("the limit query parameter is respected", async () => {
-  //     const response = await request(app).get("/user/friends?limit=2");
+  // it("the limit query parameter is respected", async () => {
+  //   const response = await request(app).get("/user/friends");
 
-  //     expect(response.status).toBe(200);
-  //     expect(response.body.msg).toBe("You are now following this user");
-  //     expect(response.body.follow).toBeInstanceOf(Object);
-  //   });
-  //   it("should return an empty array if user has no friends", async () => {
-  //     let transaction: any;
+  //   expect(response.status).toBe(200);
+  //   console.log(response.body, "---------------------------->");
 
-  //     transaction = await sequelize.transaction();
+  //   expect(response.body.msg).toBe("You are now following this user");
+  //   expect(response.body.follow).toBeInstanceOf(Object);
+  // });
+  // it("should return an empty array if user has no friends", async () => {
+  //   let transaction: any;
 
-  //     let user = await User.create(
-  //       {
-  //         email: "james@gmail.com",
-  //         password: "testpword",
-  //         username: "mattki55",
-  //         fullName: "matt kirk",
-  //       },
-  //       { transaction }
-  //     );
+  //   transaction = await sequelize.transaction();
 
-  //     (authenticateToken as jest.Mock).mockImplementation(
-  //       (req: any, res: any, next: any) => {
-  //         req.user = {
-  //           id: user.id,
-  //         };
-  //         next();
-  //       }
-  //     );
+  //   let user = await User.create(
+  //     {
+  //       email: "james@gmail.com",
+  //       password: "testpword",
+  //       username: "mattki55",
+  //       fullName: "matt kirk",
+  //     },
+  //     { transaction }
+  //   );
 
-  //     const response = await request(app).get("/user/friends?limit=2");
+  //   (authenticateToken as jest.Mock).mockImplementation(
+  //     (req: any, res: any, next: any) => {
+  //       req.user = {
+  //         id: user.id,
+  //       };
+  //       next();
+  //     }
+  //   );
 
-  //     expect(response.status).toBe(200);
-  //     expect(response.body.followingUsers).toBeInstanceOf(Array);
-  //     expect(response.body.followingUsers).toHaveLength(0);
+  //   const response = await request(app).get("/user/friends?limit=2");
 
-  //     await transaction.rollback();
-  //   });
+  //   expect(response.status).toBe(200);
+  //   expect(response.body.followingUsers).toBeInstanceOf(Array);
+  //   expect(response.body.followingUsers).toHaveLength(0);
+
+  //   await transaction.rollback();
+  // });
 });

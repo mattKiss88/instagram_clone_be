@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "start": "node src/server.js",
+    "start": "node dist/src/server.js",
     "start:dev": "nodemon",
     "build": "tsc &&  npm run copy-assets",
     "copy-assets": "copyfiles config/**/* migrations/**/* models/**/* seeders/**/* *.json *.yml -e tsconfig.json dist/ && copyfiles -f src/helpers/s3FileIds.js dist/src/helpers/"

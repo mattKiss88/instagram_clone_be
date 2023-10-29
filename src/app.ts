@@ -4,7 +4,7 @@ import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { userRouter } from "./routes/user";
 import { commentRouter } from "./routes/comment";
-import { testRouter } from "./routes/test";
+import { testRouter } from "./routes/testing";
 import cors from "cors";
 import {
   handleSqlErrors,

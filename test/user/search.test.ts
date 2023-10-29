@@ -1,7 +1,6 @@
 import request from "supertest";
 import app from "../../src/app"; // path to your server.ts
-import { Op } from "sequelize";
-const { User, Profile_picture, Follower, sequelize } = require("../../models"); // import your models
+const { User, sequelize } = require("../../models"); // import your models
 
 jest.mock("../../src/middleware/auth", () => {
   return {

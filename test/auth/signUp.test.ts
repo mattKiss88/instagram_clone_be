@@ -22,8 +22,8 @@ describe("createUser controller", () => {
     transaction = await sequelize.transaction();
 
     const originalCreate = User.create.bind(User);
-
     // Mock the User.create method to use the transaction
+
     jest.spyOn(User, "create").mockImplementation((userData) => {
       return originalCreate(userData, { transaction });
     });
@@ -41,7 +41,10 @@ describe("createUser controller", () => {
     jest.restoreAllMocks();
 
     // Rollback the transaction
-    await transaction.rollback();
+
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
   });
 
   it("should create user and return user object and token", async () => {
