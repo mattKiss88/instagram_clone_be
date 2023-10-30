@@ -10,6 +10,7 @@ phases:
       - nvm use 16
       - node -v
       - npm -v
+      - echo "Installing nvm..."
   pre_build:
     commands:
       - echo "Installing project dependencies..."
