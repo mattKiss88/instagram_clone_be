@@ -5,12 +5,13 @@ phases:
     commands:
       - echo "Installing nvm..."
       - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+      - ls -la ~/.nvm/
       - . ~/.nvm/nvm.sh
       - nvm install 16
       - nvm use 16
       - node -v
       - npm -v
-      - echo "Installing nvm..."
+      - echo "phase complete"
   pre_build:
     commands:
       - echo "Installing project dependencies..."
