@@ -3,7 +3,9 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Installing Node.js 16..."
+        - echo "Installing nvm..."
+      - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+      - . ~/.nvm/nvm.sh
       - nvm install 16
       - nvm use 16
       - node -v
