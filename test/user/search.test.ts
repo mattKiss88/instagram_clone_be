@@ -38,7 +38,7 @@ describe("searchUser controller", () => {
       email: "testuser40909@example.com",
       password: "test1234",
       username: "james",
-      fullName: "Adam Smith",
+      fullName: "Adammm Smith",
     },
   ];
   let transaction: any;
@@ -78,7 +78,7 @@ describe("searchUser controller", () => {
   });
 
   it("should return an array of users when passed a string that matches the full names", async () => {
-    const response = await request(app).get("/user?search=adam");
+    const response = await request(app).get("/user?search=adammm");
 
     console.log(
       response.body,
