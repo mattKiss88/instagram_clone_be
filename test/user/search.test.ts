@@ -88,7 +88,7 @@ describe("searchUser controller", () => {
     expect(response.status).toBe(200);
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body).toHaveLength(1);
-    expect(response.body[0].fullName).toBe("Adam Smith");
+    expect(response.body[0].fullName).toBe("Adammm Smith");
   });
   it("should omit the user that made the request from the results ", async () => {
     const response = await request(app).get("/user?search=David Smith");
