@@ -7,6 +7,7 @@ jest.mock("../../src/helpers/seedUser");
 jest.mock("bcrypt");
 
 describe("createUser controller", () => {
+  console.log(process.env.NODE_ENV, "NODE_ENV ----------------------------->");
   const mockUser = {
     email: "test1234@example.com",
     password: "test1234",

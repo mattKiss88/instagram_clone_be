@@ -15,7 +15,5 @@ phases:
   build:
     commands:
       - echo "Building the project..."
-      # Your build commands here, e.g.:
       - npm run build
-      - cd dist
       - npm test
