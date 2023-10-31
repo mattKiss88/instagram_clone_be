@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../../src/app"; // path to your server.ts
-const { User, Profile_picture, Follower, sequelize } = require("../../models"); // import your models
+const { User, Follower } = require("../../models"); // import your models
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 

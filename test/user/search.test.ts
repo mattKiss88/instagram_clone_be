@@ -80,6 +80,11 @@ describe("searchUser controller", () => {
   it("should return an array of users when passed a string that matches the full names", async () => {
     const response = await request(app).get("/user?search=adam");
 
+    console.log(
+      response.body,
+      "------------------------------------------------>"
+    );
+
     expect(response.status).toBe(200);
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body).toHaveLength(1);
