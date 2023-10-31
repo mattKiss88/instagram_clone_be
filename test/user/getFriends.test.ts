@@ -88,7 +88,9 @@ describe("searchUser controller", () => {
   afterEach(async () => {
     jest.restoreAllMocks();
 
-    await transaction.rollback();
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
   });
 
   it("should return an array of friends", async () => {
