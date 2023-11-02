@@ -17,3 +17,7 @@ phases:
       - echo "Building the project..."
       - npm run build
       - npm test
+artifacts:
+  files:
+    - target/**/*
+  name: BuildArtif/ # the artifact name or prefix
