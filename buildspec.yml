@@ -19,5 +19,5 @@ phases:
       - npm test
 artifacts:
   files:
-    - target/**/*
+    - "**/*"
   name: BuildArtif/ # the artifact name or prefix
